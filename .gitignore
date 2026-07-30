@@ -4,6 +4,10 @@ backend/venv/
 venv/
 .venv/
 
+# Python compiled files
+__pycache__/
+*.pyc
+
 # Production / Build
 dist/
 dist-ssr/
