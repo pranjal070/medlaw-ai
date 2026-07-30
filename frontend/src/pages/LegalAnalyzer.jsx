@@ -80,6 +80,11 @@ export default function LegalAnalyzer() {
   let summary = {
     document_type: 'Unknown',
     purpose: '',
+    joining_date: '',
+    benefits_allowances: '',
+    training_requirements: '',
+    employee_risks: '',
+    exploitation_check: '',
     key_dates: [],
     responsibilities: [],
     payment_terms: '',
@@ -190,6 +195,95 @@ export default function LegalAnalyzer() {
                 <li key={idx}>{resp}</li>
               ))}
             </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* LAWYER AUDIT PANEL */}
+      <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-6">
+        <div>
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <Scale className="w-5 h-5 text-primary-600" />
+            Contract Audit & Fairness Assessment
+          </h3>
+          <p className="text-[10px] text-slate-400 mt-0.5">Automated screening for key lawyer-recommended contract provisions and employee safety checks</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Joining Date & Training */}
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-50 border border-slate-150 rounded-xl space-y-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                Exact Date of Joining
+              </span>
+              <p className="text-xs font-semibold text-slate-800">
+                {summary.joining_date || "Not specified in contract"}
+              </p>
+            </div>
+
+            <div className="p-4 bg-slate-50 border border-slate-150 rounded-xl space-y-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Briefcase className="w-3.5 h-3.5 text-slate-500" />
+                Training & Obligations
+              </span>
+              <p className="text-xs text-slate-650 leading-relaxed">
+                {summary.training_requirements || "No specific training obligations mentioned."}
+              </p>
+            </div>
+          </div>
+
+          {/* Benefits & Employee Risks */}
+          <div className="space-y-4">
+            <div className="p-4 bg-emerald-50/40 border border-emerald-100/70 rounded-xl space-y-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 flex items-center gap-1.5">
+                <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                Benefits & Allowances
+              </span>
+              <p className="text-xs text-slate-650 leading-relaxed">
+                {summary.benefits_allowances || "No benefits or allowances specified."}
+              </p>
+            </div>
+
+            <div className="p-4 bg-red-50/20 border border-red-100/50 rounded-xl space-y-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-red-700 flex items-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
+                Employee Risk Provisions
+              </span>
+              <p className="text-xs text-slate-650 leading-relaxed">
+                {summary.employee_risks || "No severe employee risks identified."}
+              </p>
+            </div>
+          </div>
+
+          {/* Exploitation & Fairness Review */}
+          <div className="md:col-span-2 lg:col-span-1 p-5 bg-amber-55/10 border border-amber-100/50 rounded-xl flex flex-col justify-between space-y-4">
+            <div className="space-y-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                Exploitation & Fairness Review
+              </span>
+              <p className="text-xs text-slate-650 leading-relaxed">
+                {summary.exploitation_check || "No exploitation concerns detected."}
+              </p>
+            </div>
+            
+            <div className="pt-3 border-t border-amber-100/50 flex items-center gap-2">
+              <span className={`w-2.5 h-2.5 rounded-full ${
+                (summary.exploitation_check?.toLowerCase().includes('high risk') || summary.exploitation_check?.toLowerCase().includes('highly unfavorable'))
+                  ? 'bg-red-500 animate-pulse'
+                  : summary.exploitation_check?.toLowerCase().includes('medium risk')
+                  ? 'bg-amber-500'
+                  : 'bg-emerald-500'
+              }`}></span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                {(summary.exploitation_check?.toLowerCase().includes('high risk') || summary.exploitation_check?.toLowerCase().includes('highly unfavorable'))
+                  ? 'Action Recommended'
+                  : summary.exploitation_check?.toLowerCase().includes('medium risk')
+                  ? 'Caution Advised'
+                  : 'Fair Contract Terms'}
+              </span>
+            </div>
           </div>
         </div>
       </div>

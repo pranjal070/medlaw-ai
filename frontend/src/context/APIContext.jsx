@@ -71,6 +71,11 @@ const MOCK_LEGAL_RESPONSE = {
   summary: {
     document_type: "Employment Agreement",
     purpose: "Establishes an employment contract between the Employer and the Employee, outlining roles, compensation, and workplace regulations.",
+    joining_date: "August 1, 2026",
+    benefits_allowances: "Comprehensive medical and dental insurance, 401(k) matching up to 4%, and $150 monthly wellness/fitness allowance.",
+    training_requirements: "Mandatory 2-week internal codebase onboarding. No costs associated.",
+    employee_risks: "Intellectual property clause is extremely broad, claiming ownership of any ideas developed during the entire employment term, even off-hours.",
+    exploitation_check: "Low risk. The contract has standard terms, competitive salary, and reasonable working hours, though the 60-day notice period is slightly above average.",
     key_dates: [
       "Start Date: August 1, 2026",
       "Notice Period: 60 days written notification before resignation"
@@ -217,6 +222,11 @@ const getDynamicMockLegal = (filename) => {
       summary: {
         document_type: "Physician Employment Agreement",
         purpose: "Establishes a clinical services employment contract between the Healthcare Group and the Doctor, outlining clinical duties, malpractice insurance, and compensation.",
+        joining_date: "October 1, 2026",
+        benefits_allowances: "Family health coverage, 4 weeks of paid annual leave, CME (Continuing Medical Education) allowance of $5,000 annually, and professional dues reimbursement.",
+        training_requirements: "Must maintain board certification and complete 50 hours of CME training annually. Malpractice tail coverage is not paid by employer.",
+        employee_risks: "Malpractice tail coverage liability upon termination could cost up to $30,500. Non-compete covers a wide 15-mile radius around any of their clinics.",
+        exploitation_check: "Medium risk. While base salary and benefits are premium, the malpractice tail coverage transfer and broad non-compete clauses are highly unfavorable to the physician.",
         key_dates: [
           "Start Date: October 1, 2026",
           "Termination Notice: 90 days written notice by either party"
@@ -259,6 +269,11 @@ const getDynamicMockLegal = (filename) => {
       summary: {
         document_type: "Residential Lease Agreement",
         purpose: "Outlines the terms under which a Landlord rents a residential property to a Tenant, specifying rent, duration, and property rules.",
+        joining_date: "September 1, 2026 (Move-in Date)",
+        benefits_allowances: "Access to building amenities (gym, rooftop terrace, bike storage), and one assigned parking space included in the rent.",
+        training_requirements: "None.",
+        employee_risks: "Severe early termination fee (2 months rent penalty) and total security deposit forfeiture for early lease break.",
+        exploitation_check: "Medium risk. The landlord has a right of entry with only 24-hour notice for routine checks, and early termination penalties are highly punitive to the tenant.",
         key_dates: [
           "Lease Term: 12 months, starting September 1, 2026",
           "Rent Due: On or before the 1st of each calendar month"
@@ -475,6 +490,11 @@ You must return a JSON object with the following schema:
   "summary": {
     "document_type": "E.g. Lease Agreement, NDA, Employment Contract",
     "purpose": "1-2 sentences explaining the main objective of this document.",
+    "joining_date": "The exact date of joining/commencement, or 'Not specified'.",
+    "benefits_allowances": "Description of benefits, health insurance, bonuses, or allowances, or 'None specified'.",
+    "training_requirements": "Any training duties, mandated training hours, or cost repayment clauses, or 'None specified'.",
+    "employee_risks": "Risk provisions affecting the employee (e.g. strict liability, indemnification, strict IP ownership).",
+    "exploitation_check": "Detailed assessment of any potential exploitation (e.g. unfair notice periods, penalty fees, excessive hours, unreasonable non-compete clauses, underpayment).",
     "key_dates": ["List of important dates like start date, expiration date, notice milestones"],
     "responsibilities": ["Responsibility 1", "Responsibility 2"],
     "payment_terms": "Description of any financial obligations, salary, or security deposit details, or 'N/A'",
