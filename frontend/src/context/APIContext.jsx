@@ -1,6 +1,10 @@
 import React, { createContext, useContext } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set PDF.js worker (CDN – no bundler config needed)
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 const APIContext = createContext(null);
 
@@ -494,6 +498,136 @@ const parseFloatSafe = (val) => {
   }
 };
 
+// ─── PDF.js Text Extraction ───────────────────────────────────────────
+const extractTextFromPDF = async (file) => {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join(' ');
+      fullText += pageText + '\n';
+    }
+    return fullText.trim();
+  } catch (e) {
+    console.warn('PDF text extraction failed:', e);
+    return null;
+  }
+};
+
+// ─── Smart Data Mining from Extracted Text ────────────────────────────
+const mineDataFromText = (text) => {
+  if (!text) return {};
+
+  // Extract all monetary values: $1,000 / $90,000 / $1.5M etc.
+  const moneyMatches = text.match(/\$[\d,]+(?:\.\d{1,2})?(?:\s*(?:million|M|k|K|USD|per annum|p\.a\.)?)?/g) || [];
+  const money = [...new Set(moneyMatches)].slice(0, 10);
+
+  // Extract all dates: Jan 1, 2026 / 01/01/2026 / 2026-01-01 / 1st January 2026
+  const datePattern = /(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}|\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})/gi;
+  const dateMatches = text.match(datePattern) || [];
+  const dates = [...new Set(dateMatches)].slice(0, 8);
+
+  // Extract all section/clause references: Section 4.2, Clause 9(a), Article 3
+  const sectionPattern = /(?:Section|Clause|Article|Para(?:graph)?)\.?\s*[\d]+(?:[\.(]\w+[)]?)*/gi;
+  const sectionMatches = text.match(sectionPattern) || [];
+  const sections = [...new Set(sectionMatches)].slice(0, 15);
+
+  // Extract notice/duration periods: 30 days, 90 days, 12 months, 2 years
+  const durationPattern = /\d+\s*(?:business\s+)?(?:days?|months?|years?|weeks?)/gi;
+  const durations = [...new Set(text.match(durationPattern) || [])].slice(0, 8);
+
+  // Extract party names (between/among pattern)
+  const partyPattern = /(?:between|by and between|among)\s+([A-Z][^,;.()\n]{3,60}?)(?:\s*[,;(]|\s+and\s+)/g;
+  const parties = [];
+  let m;
+  while ((m = partyPattern.exec(text)) !== null) {
+    parties.push(m[1].trim());
+    if (parties.length >= 3) break;
+  }
+
+  // Build a summary of extracted real data
+  const summary = [];
+  if (money.length > 0) summary.push(`Financial figures found: ${money.join(', ')}`);
+  if (dates.length > 0) summary.push(`Dates found: ${dates.join(', ')}`);
+  if (durations.length > 0) summary.push(`Notice/Duration periods: ${durations.join(', ')}`);
+  if (sections.length > 0) summary.push(`Referenced sections: ${sections.slice(0, 5).join(', ')}`);
+  if (parties.length > 0) summary.push(`Parties identified: ${parties.join(', ')}`);
+
+  return { money, dates, sections, durations, parties, summary, rawText: text.substring(0, 1500) };
+};
+
+// Build enriched mock using real extracted data
+const buildEnrichedLegalMock = (filename, mined) => {
+  const base = getDynamicMockLegal(filename);
+  if (!mined || Object.keys(mined).length === 0) return base;
+
+  // Patch summary with real data
+  const enriched = JSON.parse(JSON.stringify(base)); // deep clone
+
+  if (mined.dates.length > 0) {
+    enriched.summary.joining_date = mined.dates[0];
+    enriched.summary.key_dates = mined.dates.map(d => `Identified Date: ${d}`);
+  }
+  if (mined.money.length > 0) {
+    enriched.summary.payment_terms = `Financial values extracted from document: ${mined.money.join(', ')}.`;
+  }
+  if (mined.durations.length > 0) {
+    enriched.summary.termination_conditions = `Duration/notice periods found in document: ${mined.durations.join(', ')}.`;
+  }
+  if (mined.parties.length > 0) {
+    enriched.summary.purpose = (enriched.summary.purpose || '') + ` Parties: ${mined.parties.join(' and ')}.`;
+  }
+
+  // Add a real-data clause at the top
+  if (mined.summary.length > 0) {
+    enriched.clauses.unshift({
+      clause_title: '📄 Document Scan Results (Extracted from PDF)',
+      category: 'Other Provisions',
+      location_reference: 'Full Document Scan',
+      original_text: mined.rawText.substring(0, 400) + (mined.rawText.length > 400 ? '...' : ''),
+      explanation: 'This is the actual text extracted from your uploaded PDF document using PDF.js.',
+      employee_advantages: mined.summary.slice(0, 3).join(' | '),
+      employee_disadvantages: 'For complete deep analysis, add a free Gemini API Key in ⚙️ AI API Settings.',
+      risk_level: 'Low',
+      detailed_risk_analysis: `PDF text was successfully read. Extracted data:\n${mined.summary.join('\n')}\n\nNote: Without an AI key, detailed clause-level analysis cannot be generated. The section analysis below is AI-generated based on document type detection.`
+    });
+  }
+
+  return enriched;
+};
+
+const buildEnrichedMedicalMock = (filename, mined) => {
+  const base = getDynamicMockMedical(filename);
+  if (!mined || mined.rawText === undefined) return base;
+
+  const enriched = JSON.parse(JSON.stringify(base));
+
+  // Try to extract test values from PDF text
+  const testPattern = /([A-Za-z][A-Za-z\s\-/()]+)\s*[:]?\s*([\d.]+)\s*(g\/dL|mg\/dL|ng\/mL|IU\/L|mmol\/L|%|K\/uL|M\/uL|mEq\/L)?/g;
+  const foundTests = [];
+  let tm;
+  while ((tm = testPattern.exec(mined.rawText)) !== null) {
+    const name = tm[1].trim();
+    const val = tm[2];
+    const unit = tm[3] || '';
+    if (name.length > 3 && name.length < 40 && !name.match(/^(and|the|for|with|from|this|that|page|date|name|test|result)$/i)) {
+      foundTests.push({ test_name: name, result_val: val, unit, status: 'Extracted', normal_range: 'See report', explanation: `Extracted value from your PDF. Please verify with your doctor.` });
+    }
+    if (foundTests.length >= 6) break;
+  }
+
+  if (foundTests.length > 0) {
+    enriched.tests = foundTests;
+    enriched.summary.overall_health = `PDF text extracted successfully. Found ${foundTests.length} test values in your document. Values shown are directly read from your uploaded file. For complete AI-powered interpretation, please add a Gemini API key.`;
+    enriched.summary.key_findings = foundTests.slice(0, 3).map(t => `${t.test_name}: ${t.result_val} ${t.unit}`);
+  }
+
+  return enriched;
+};
+
 export const APIProvider = ({ children }) => {
   const { API_URL, geminiKey } = useAuth();
 
@@ -592,8 +726,23 @@ You must return a JSON object with the following schema:
           textContent = `Mocked Local Report. File name: ${file.name}`;
         }
       } else {
-        analysisResult = fileType === 'medical' ? getDynamicMockMedical(file.name) : getDynamicMockLegal(file.name);
-        textContent = `Mocked Local Report. File name: ${file.name}`;
+        // ── No Gemini Key: Use PDF.js to extract real text ──────────────
+        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+          const extractedText = await extractTextFromPDF(file);
+          if (extractedText) {
+            const mined = mineDataFromText(extractedText);
+            textContent = `PDF text extracted (${extractedText.length} characters). ${mined.summary.join(' | ')}`;
+            analysisResult = fileType === 'medical'
+              ? buildEnrichedMedicalMock(file.name, mined)
+              : buildEnrichedLegalMock(file.name, mined);
+          } else {
+            textContent = `Mocked Local Report. File name: ${file.name}`;
+            analysisResult = fileType === 'medical' ? getDynamicMockMedical(file.name) : getDynamicMockLegal(file.name);
+          }
+        } else {
+          textContent = `Mocked Local Report. File name: ${file.name}`;
+          analysisResult = fileType === 'medical' ? getDynamicMockMedical(file.name) : getDynamicMockLegal(file.name);
+        }
       }
 
       const docs = getInitialDocuments();
