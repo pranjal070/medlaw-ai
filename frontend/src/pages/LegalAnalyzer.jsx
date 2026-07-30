@@ -85,6 +85,8 @@ export default function LegalAnalyzer() {
     training_requirements: '',
     employee_risks: '',
     exploitation_check: '',
+    overall_benefits: [],
+    overall_disadvantages: [],
     key_dates: [],
     responsibilities: [],
     payment_terms: '',
@@ -103,6 +105,16 @@ export default function LegalAnalyzer() {
   const lowRiskClauses = clauses.filter(c => c.risk_level === 'Low');
   const medRiskClauses = clauses.filter(c => c.risk_level === 'Medium');
   const highRiskClauses = clauses.filter(c => c.risk_level === 'High');
+
+  // Group clauses by Category
+  const categories = {};
+  clauses.forEach((c) => {
+    const cat = c.category || 'Other Provisions';
+    if (!categories[cat]) {
+      categories[cat] = [];
+    }
+    categories[cat].push(c);
+  });
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-16">
@@ -196,6 +208,46 @@ export default function LegalAnalyzer() {
               ))}
             </ul>
           </div>
+        </div>
+      </div>
+      {/* OVERALL PROS & CONS HIGHLIGHTS */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Benefits Card */}
+        <div className="bg-emerald-50/20 border border-emerald-100/70 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-2 text-emerald-800">
+            <CheckCircle className="w-5 h-5 text-emerald-600" />
+            <h3 className="font-bold text-sm">Contract Advantages (Pros)</h3>
+          </div>
+          <ul className="space-y-2.5">
+            {(summary.overall_benefits || []).map((benefit, idx) => (
+              <li key={idx} className="text-xs text-slate-650 leading-relaxed flex items-start gap-2">
+                <span className="text-emerald-500 font-bold mt-0.5">•</span>
+                <span>{benefit}</span>
+              </li>
+            ))}
+            {(!summary.overall_benefits || summary.overall_benefits.length === 0) && (
+              <li className="text-xs text-slate-450 italic">No specific advantages listed for the employee.</li>
+            )}
+          </ul>
+        </div>
+
+        {/* Disadvantages Card */}
+        <div className="bg-red-50/10 border border-red-100/50 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-2 text-red-800">
+            <ShieldAlert className="w-5 h-5 text-red-650" />
+            <h3 className="font-bold text-sm">Contract Disadvantages (Cons)</h3>
+          </div>
+          <ul className="space-y-2.5">
+            {(summary.overall_disadvantages || []).map((disadv, idx) => (
+              <li key={idx} className="text-xs text-slate-650 leading-relaxed flex items-start gap-2">
+                <span className="text-red-400 font-bold mt-0.5">•</span>
+                <span>{disadv}</span>
+              </li>
+            ))}
+            {(!summary.overall_disadvantages || summary.overall_disadvantages.length === 0) && (
+              <li className="text-xs text-slate-450 italic">No severe disadvantages listed.</li>
+            )}
+          </ul>
         </div>
       </div>
 
@@ -390,38 +442,98 @@ export default function LegalAnalyzer() {
         </div>
       </div>
 
-      {/* DUAL COLUMN LEGAL TRANSLATOR PANEL */}
-      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100">
-          <h3 className="font-bold text-slate-850">Legalese Translator Split-View</h3>
-          <p className="text-[10px] text-slate-400 mt-0.5">AI-powered direct translation of contract terminology to plain English</p>
+      {/* CATEGORIZED CLAUSE & ADVISORY HUB */}
+      <div className="space-y-6">
+        <div>
+          <h3 className="font-bold text-slate-800">Head-wise Clause Analysis & Advisory Board</h3>
+          <p className="text-[10px] text-slate-400 mt-0.5">In-depth clause evaluation grouped by contract head, featuring direct paragraph references, benefits, disadvantages, and negotiation strategies</p>
         </div>
 
-        <div className="divide-y divide-slate-100">
-          {clauses.map((clause) => (
-            <div key={clause.id} className="p-6 grid md:grid-cols-2 gap-6 hover:bg-slate-50/30 transition-colors">
-              <div className="space-y-2">
-                <span className="text-[9px] uppercase tracking-wide text-slate-400 font-bold">Original Clause Covenants</span>
-                <h4 className="font-bold text-xs text-slate-800">{clause.clause_title}</h4>
-                <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl">
-                  <p className="text-xs text-slate-600 font-mono leading-relaxed">"{clause.original_text}"</p>
-                </div>
-              </div>
+        {Object.keys(categories).map((catName) => (
+          <div key={catName} className="space-y-4">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 bg-slate-100 px-4 py-2 rounded-xl inline-block">
+              {catName}
+            </h4>
 
-              <div className="space-y-2">
-                <span className="text-[9px] uppercase tracking-wide text-primary-500 font-bold">Simplified Plain-English Meaning</span>
-                <h4 className="font-bold text-xs text-primary-650 flex items-center gap-1">
-                  AI Translation Explanation
-                </h4>
-                <div className="p-3 bg-primary-50/50 border border-primary-100 rounded-xl h-full flex items-center">
-                  <p className="text-xs text-slate-700 leading-relaxed font-medium">
-                    {clause.explanation}
-                  </p>
+            <div className="space-y-6">
+              {categories[catName].map((clause) => (
+                <div key={clause.id || clause.clause_title} className="bg-white border border-slate-150 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                  {/* Clause Header Bar */}
+                  <div className="px-6 py-4 bg-slate-50 border-b border-slate-150 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <h5 className="font-extrabold text-sm text-slate-850">{clause.clause_title}</h5>
+                      <span className="bg-primary-100 text-primary-750 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-primary-200 flex items-center gap-1">
+                        📍 {clause.location_reference || "Unspecified Section"}
+                      </span>
+                    </div>
+
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider border ${
+                      clause.risk_level === 'High'
+                        ? 'bg-red-50 text-red-700 border-red-205'
+                        : clause.risk_level === 'Medium'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}>
+                      {clause.risk_level || 'Low'} Severity Risk
+                    </span>
+                  </div>
+
+                  {/* Body Content: Grid for Original, Plain English, and Pros/Cons */}
+                  <div className="p-6 grid md:grid-cols-3 gap-6">
+                    {/* Original Covenant */}
+                    <div className="space-y-2">
+                      <span className="text-[9px] uppercase tracking-wide text-slate-400 font-bold">Original Covenant Text</span>
+                      <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl min-h-[100px] flex items-start">
+                        <p className="text-xs text-slate-600 font-mono leading-relaxed">"{clause.original_text}"</p>
+                      </div>
+                    </div>
+
+                    {/* Plain-English Meaning */}
+                    <div className="space-y-2">
+                      <span className="text-[9px] uppercase tracking-wide text-primary-500 font-bold">Plain-English Meaning</span>
+                      <div className="p-3 bg-primary-50/30 border border-primary-100 rounded-xl min-h-[100px] flex items-start">
+                        <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                          {clause.explanation}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Pros & Cons (Advantages/Disadvantages) */}
+                    <div className="space-y-3">
+                      <span className="text-[9px] uppercase tracking-wide text-slate-500 font-bold">Pros & Cons for You</span>
+                      <div className="space-y-2">
+                        {/* Pros */}
+                        <div className="p-2.5 bg-emerald-50/30 border border-emerald-100/50 rounded-xl">
+                          <span className="text-[9px] font-bold text-emerald-750 block uppercase mb-1">Advantages (Pros)</span>
+                          <p className="text-xs text-slate-650 leading-relaxed">
+                            {clause.employee_advantages || "No specific advantages identified."}
+                          </p>
+                        </div>
+                        {/* Cons */}
+                        <div className="p-2.5 bg-red-50/10 border border-red-100/30 rounded-xl">
+                          <span className="text-[9px] font-bold text-red-700 block uppercase mb-1">Disadvantages (Cons)</span>
+                          <p className="text-xs text-slate-650 leading-relaxed">
+                            {clause.employee_disadvantages || "No specific disadvantages identified."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Panel: In-Depth Risk & Advisory Review */}
+                  <div className="px-6 py-4 bg-amber-50/20 border-t border-slate-150 flex flex-col gap-1.5">
+                    <span className="text-[9px] uppercase tracking-wide text-amber-700 font-bold flex items-center gap-1.5">
+                      ⚠️ In-Depth Risk & Negotiation Advisory
+                    </span>
+                    <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                      {clause.detailed_risk_analysis || "This clause is standard with minimal risk. Ensure standard compliance during execution."}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
     </div>
