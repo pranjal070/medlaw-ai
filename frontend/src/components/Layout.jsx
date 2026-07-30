@@ -17,7 +17,7 @@ import {
 import { Link, useLocation } from 'react-router-dom';
 
 export default function Layout({ children }) {
-  const { user, logout, geminiKey, setGeminiKey } = useAuth();
+  const { user, logout, geminiKey, setGeminiKey, isDemo } = useAuth();
   const location = useLocation();
   const [showSettings, setShowSettings] = useState(false);
   const [tempKey, setTempKey] = useState(geminiKey);
@@ -119,7 +119,15 @@ export default function Layout({ children }) {
             {menuItems.find(m => m.path === location.pathname)?.name || 'MedLaw AI Portal'}
           </h1>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Sandbox Mode Pill */}
+            {isDemo && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-200">
+                <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                Local Sandbox Mode
+              </span>
+            )}
+
             {/* API Mode Indicator */}
             {geminiKey ? (
               <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200">

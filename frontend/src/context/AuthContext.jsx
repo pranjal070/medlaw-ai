@@ -10,9 +10,10 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
   const [geminiKey, setGeminiKey] = useState(localStorage.getItem('gemini_key') || '');
+  const [isDemo, setIsDemo] = useState(localStorage.getItem('medlaw_demo_mode') === 'true');
 
-  // Base API URL
-  const API_URL = 'http://localhost:8000/api';
+  // Base API URL supporting Vite env variables
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
   useEffect(() => {
     if (token) {
@@ -34,12 +35,37 @@ export const AuthProvider = ({ children }) => {
   }, [geminiKey]);
 
   const fetchUserProfile = async () => {
+    if (localStorage.getItem('medlaw_demo_mode') === 'true') {
+      let email = 'demo@example.com';
+      if (token && token.startsWith('demo-token-')) {
+        try {
+          email = atob(token.replace('demo-token-', ''));
+        } catch (e) {}
+      }
+      setUser({ id: 'demo-user-' + email, email });
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.get(`${API_URL}/auth/me`);
       setUser(response.data);
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      logout();
+      if (!error.response) {
+        // Switch to demo mode if backend is not reachable
+        localStorage.setItem('medlaw_demo_mode', 'true');
+        setIsDemo(true);
+        let email = 'demo@example.com';
+        if (token && token.startsWith('demo-token-')) {
+          try {
+            email = atob(token.replace('demo-token-', ''));
+          } catch (e) {}
+        }
+        setUser({ id: 'demo-user-' + email, email });
+      } else {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
@@ -51,8 +77,31 @@ export const AuthProvider = ({ children }) => {
       const { access_token } = response.data;
       localStorage.setItem('token', access_token);
       setToken(access_token);
+      localStorage.removeItem('medlaw_demo_mode');
+      setIsDemo(false);
       return { success: true };
     } catch (error) {
+      if (!error.response || localStorage.getItem('medlaw_demo_mode') === 'true') {
+        // Fallback to Demo Mode
+        localStorage.setItem('medlaw_demo_mode', 'true');
+        setIsDemo(true);
+        
+        const demoUsers = JSON.parse(localStorage.getItem('medlaw_demo_users') || '[]');
+        const existingUser = demoUsers.find(u => u.email === email);
+        if (existingUser && existingUser.password !== password) {
+          return { success: false, error: 'Incorrect password for local demo account' };
+        }
+        if (!existingUser) {
+          demoUsers.push({ id: Date.now(), email, password });
+          localStorage.setItem('medlaw_demo_users', JSON.stringify(demoUsers));
+        }
+
+        const access_token = 'demo-token-' + btoa(email);
+        localStorage.setItem('token', access_token);
+        setToken(access_token);
+        setUser({ id: 'demo-user-' + email, email });
+        return { success: true };
+      }
       const message = error.response?.data?.detail || 'Login failed';
       return { success: false, error: message };
     }
@@ -61,9 +110,20 @@ export const AuthProvider = ({ children }) => {
   const register = async (email, password) => {
     try {
       await axios.post(`${API_URL}/auth/register`, { email, password });
-      // Automatical login after register
       return await login(email, password);
     } catch (error) {
+      if (!error.response) {
+        // Fallback to Demo Mode
+        localStorage.setItem('medlaw_demo_mode', 'true');
+        setIsDemo(true);
+
+        const demoUsers = JSON.parse(localStorage.getItem('medlaw_demo_users') || '[]');
+        if (!demoUsers.find(u => u.email === email)) {
+          demoUsers.push({ id: Date.now(), email, password });
+          localStorage.setItem('medlaw_demo_users', JSON.stringify(demoUsers));
+        }
+        return await login(email, password);
+      }
       const message = error.response?.data?.detail || 'Registration failed';
       return { success: false, error: message };
     }
@@ -71,6 +131,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('medlaw_demo_mode');
+    setIsDemo(false);
     setToken(null);
     setUser(null);
   };
@@ -84,8 +146,10 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    API_URL
+    API_URL,
+    isDemo
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
