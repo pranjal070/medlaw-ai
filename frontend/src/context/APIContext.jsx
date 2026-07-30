@@ -114,6 +114,191 @@ const MOCK_LEGAL_RESPONSE = {
   ]
 };
 
+const getDynamicMockMedical = (filename) => {
+  const name = filename.toLowerCase();
+  if (name.includes('blood') || name.includes('cbc') || name.includes('complete')) {
+    return {
+      summary: {
+        overall_health: "The patient's Complete Blood Count (CBC) is mostly normal, showing healthy platelet and white blood cell levels, but indicates mild iron-deficiency anemia due to low hemoglobin.",
+        key_findings: [
+          "Hemoglobin levels are below the standard threshold (10.5 g/dL).",
+          "Red Blood Cell count is slightly low.",
+          "White Blood Cell and Platelet counts are in the healthy reference range."
+        ],
+        abnormal_parameters: ["Hemoglobin", "Red Blood Cells (RBC)"],
+        recommendations: [
+          "Increase dietary intake of iron-rich foods (e.g., spinach, red meat, lentils).",
+          "Consult with a healthcare provider regarding iron supplementation.",
+          "Recheck CBC levels in 3 months to monitor progress."
+        ],
+        attention_tests: ["Hemoglobin (Mild Anemia indicator)"]
+      },
+      tests: [
+        {
+          test_name: "Hemoglobin",
+          result_val: "10.5",
+          unit: "g/dL",
+          normal_range: "12.0 - 16.0",
+          status: "Low",
+          explanation: "Low hemoglobin reduces oxygen delivery to tissues, potentially causing fatigue or weakness."
+        },
+        {
+          test_name: "Red Blood Cells (RBC)",
+          result_val: "3.8",
+          unit: "M/uL",
+          normal_range: "4.0 - 5.2",
+          status: "Low",
+          explanation: "A low RBC count matches the low hemoglobin and points toward mild anemia."
+        },
+        {
+          test_name: "White Blood Cells (WBC)",
+          result_val: "6.2",
+          unit: "K/uL",
+          normal_range: "4.5 - 11.0",
+          status: "Normal",
+          explanation: "Normal WBC counts indicate that the immune system is currently stable with no active infection."
+        },
+        {
+          test_name: "Platelets",
+          result_val: "250.0",
+          unit: "K/uL",
+          normal_range: "150.0 - 450.0",
+          status: "Normal",
+          explanation: "Platelet levels are healthy, indicating normal blood clotting capability."
+        }
+      ]
+    };
+  }
+
+  if (name.includes('vitamin') || name.includes('vit') || name.includes('deficiency')) {
+    return {
+      summary: {
+        overall_health: "The patient is suffering from severe Vitamin D deficiency, which can affect bone strength, mood, and immunity. Calcium levels remain normal.",
+        key_findings: [
+          "Vitamin D level is critically low at 12.0 ng/mL.",
+          "Serum Calcium and Phosphate levels are within the normal reference ranges."
+        ],
+        abnormal_parameters: ["Vitamin D (25-Hydroxy)"],
+        recommendations: [
+          "Initiate clinical-strength Vitamin D3 supplementation under medical supervision.",
+          "Incorporate calcium-rich foods and spend 15 minutes in midday sunlight daily.",
+          "Schedule a follow-up test in 8-12 weeks."
+        ],
+        attention_tests: ["Vitamin D (Severe Deficiency)"]
+      },
+      tests: [
+        {
+          test_name: "Vitamin D (25-Hydroxy)",
+          result_val: "12.0",
+          unit: "ng/mL",
+          normal_range: "30.0 - 100.0",
+          status: "Low",
+          explanation: "Severely low vitamin D levels can cause bone pain, muscle weakness, and affect calcium absorption."
+        },
+        {
+          test_name: "Serum Calcium",
+          result_val: "9.6",
+          unit: "mg/dL",
+          normal_range: "8.5 - 10.2",
+          status: "Normal",
+          explanation: "Normal calcium indicates that the body is maintaining calcium balance despite the vitamin D deficiency."
+        }
+      ]
+    };
+  }
+
+  return MOCK_MEDICAL_RESPONSE;
+};
+
+const getDynamicMockLegal = (filename) => {
+  const name = filename.toLowerCase();
+  if (name.includes('doctor') || name.includes('physician') || name.includes('female') || name.includes('medical')) {
+    return {
+      summary: {
+        document_type: "Physician Employment Agreement",
+        purpose: "Establishes a clinical services employment contract between the Healthcare Group and the Doctor, outlining clinical duties, malpractice insurance, and compensation.",
+        key_dates: [
+          "Start Date: October 1, 2026",
+          "Termination Notice: 90 days written notice by either party"
+        ],
+        responsibilities: [
+          "Provide patient care and clinical services in accordance with medical standards.",
+          "Maintain active license to practice medicine and board certifications."
+        ],
+        payment_terms: "Base salary of $210,000 USD per annum, plus productivity bonuses based on RVU targets.",
+        termination_conditions: "90 days written notification required, or immediate termination by employer for loss of medical license/privileges."
+      },
+      clauses: [
+        {
+          clause_title: "Termination Notice",
+          original_text: "Either party may terminate this agreement without cause upon ninety (90) days prior written notice to the other party.",
+          explanation: "You or the employer must give 90 days notice in writing to end the contract without a specific reason.",
+          risk_level: "Medium",
+          risk_explanation: "90 days is a long transition period. It may limit your ability to start a new practice quickly."
+        },
+        {
+          clause_title: "Restrictive Covenant (Non-Compete)",
+          original_text: "During employment and for 2 years post-termination, Physician shall not practice medicine within a 15-mile radius of any clinic operated by the Employer.",
+          explanation: "For two years after leaving, you cannot practice medicine or open a clinic within 15 miles of any of the employer's offices.",
+          risk_level: "High",
+          risk_explanation: "Highly restrictive. Since the employer operates multiple clinics, this could force you to relocate to practice medicine."
+        },
+        {
+          clause_title: "Malpractice Insurance & Tail Coverage",
+          original_text: "Employer shall provide claims-made professional liability insurance. Upon termination, Physician shall be responsible for purchasing tail coverage.",
+          explanation: "The employer pays for your malpractice insurance while you work there, but when you leave, you have to pay for the 'tail' coverage yourself.",
+          risk_level: "High",
+          risk_explanation: "Tail coverage for medical malpractice can be extremely expensive (often tens of thousands of dollars)."
+        }
+      ]
+    };
+  }
+
+  if (name.includes('lease') || name.includes('rent') || name.includes('apartment') || name.includes('tenant')) {
+    return {
+      summary: {
+        document_type: "Residential Lease Agreement",
+        purpose: "Outlines the terms under which a Landlord rents a residential property to a Tenant, specifying rent, duration, and property rules.",
+        key_dates: [
+          "Lease Term: 12 months, starting September 1, 2026",
+          "Rent Due: On or before the 1st of each calendar month"
+        ],
+        responsibilities: [
+          "Pay monthly rent on time and maintain the premises in clean condition.",
+          "Obtain prior written approval from the landlord before making alterations."
+        ],
+        payment_terms: "Monthly rent of $1,850 USD. Late fee of $100 applies after the 5th of the month. Security deposit of $1,850.",
+        termination_conditions: "Tenant may not terminate early without forfeiting the security deposit and paying a 2-month rent penalty."
+      },
+      clauses: [
+        {
+          clause_title: "Late Fee Penalty",
+          original_text: "Rent is due on the 1st. A late charge of $100 shall be assessed if rent is not received by 5:00 PM on the 5th of the month.",
+          explanation: "If you pay rent after the 5th day of the month, you will be charged an extra $100.",
+          risk_level: "Low",
+          risk_explanation: "Standard grace period and late fee amount in most residential leases."
+        },
+        {
+          clause_title: "Early Termination Penalty",
+          original_text: "In the event of early termination by Tenant, Tenant shall forfeit the security deposit and pay an amount equal to two months' rent.",
+          explanation: "If you break the lease early, you lose your deposit and must pay an extra 2 months of rent as a penalty.",
+          risk_level: "High",
+          risk_explanation: "Very costly. If you have to move for a job or emergency, this penalty is extremely punitive."
+        },
+        {
+          clause_title: "Right of Entry",
+          original_text: "Landlord reserves the right to enter the premises at any time for emergency repairs, and with a 24-hour notice for routine inspections.",
+          explanation: "The landlord can enter your home anytime for emergencies, and needs to give you 24 hours notice for normal visits.",
+          risk_level: "Medium",
+          risk_explanation: "Standard but can feel intrusive if the landlord conducts frequent 'routine' inspections."
+        }
+      ]
+    };
+  }
+
+  return MOCK_LEGAL_RESPONSE;
+};
+
 // Seeding initial local database
 const getInitialDocuments = () => {
   const stored = localStorage.getItem('medlaw_demo_documents');
@@ -310,11 +495,11 @@ You must return a JSON object with the following schema:
           }
         } catch (e) {
           console.error("Client Gemini analysis failed. Falling back to Mock.", e);
-          analysisResult = fileType === 'medical' ? MOCK_MEDICAL_RESPONSE : MOCK_LEGAL_RESPONSE;
+          analysisResult = fileType === 'medical' ? getDynamicMockMedical(file.name) : getDynamicMockLegal(file.name);
           textContent = `Mocked Local Report. File name: ${file.name}`;
         }
       } else {
-        analysisResult = fileType === 'medical' ? MOCK_MEDICAL_RESPONSE : MOCK_LEGAL_RESPONSE;
+        analysisResult = fileType === 'medical' ? getDynamicMockMedical(file.name) : getDynamicMockLegal(file.name);
         textContent = `Mocked Local Report. File name: ${file.name}`;
       }
 

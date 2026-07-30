@@ -101,8 +101,8 @@ export default function LegalAnalyzer() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-16">
-      {/* HEADER ACTIONS */}
-      <div className="flex items-center justify-between">
+      {/* HEADER ACTIONS & TITLE */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <button 
           onClick={() => navigate('/')}
           className="flex items-center gap-2 text-slate-500 hover:text-slate-800 text-xs font-bold transition-colors"
@@ -110,6 +110,12 @@ export default function LegalAnalyzer() {
           <ChevronLeft className="w-4.5 h-4.5" />
           Back to Dashboard
         </button>
+
+        {/* File Name Tag */}
+        <div className="flex items-center gap-2 bg-slate-105 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200">
+          <FileText className="w-4 h-4 text-slate-500" />
+          <span>Analyzing: {document.filename}</span>
+        </div>
       </div>
 
       {/* OVERVIEW SECTION & METRIC BLOCKS */}
