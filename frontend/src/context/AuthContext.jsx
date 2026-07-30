@@ -9,7 +9,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
-  const [geminiKey, setGeminiKey] = useState(localStorage.getItem('gemini_key') || '');
+  // Priority: 1) User's own key (localStorage)  2) Vercel env var (site-wide)  3) empty → PDF.js mode
+  const ENV_GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+  const [geminiKey, setGeminiKey] = useState(localStorage.getItem('gemini_key') || ENV_GEMINI_KEY || '');
   const [isDemo, setIsDemo] = useState(localStorage.getItem('medlaw_demo_mode') === 'true');
 
   // Base API URL supporting Vite env variables

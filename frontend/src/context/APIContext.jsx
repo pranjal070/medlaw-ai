@@ -753,63 +753,99 @@ export const APIProvider = ({ children }) => {
           const mimeType = file.type || "application/pdf";
           
           if (fileType === 'medical') {
-            const systemPrompt = `You are an expert Medical Report Analyzer. Your task is to extract information from the medical report provided and output a structured JSON report.
+            const systemPrompt = `You are a senior board-certified medical diagnostic consultant and clinical report analyzer. Your task is to perform an exhaustive, line-by-line analysis of the uploaded medical lab report and output a structured JSON report.
+Read every parameter, value, unit, and reference range in the document carefully without omitting any test.
 You must return a JSON object with the following schema:
 {
   "summary": {
-    "overall_health": "Short paragraph summarizing the overall health status of the patient.",
-    "key_findings": ["Bullet point 1", "Bullet point 2"],
-    "abnormal_parameters": ["List of parameters that are out of bounds"],
-    "recommendations": ["Recommendation 1", "Recommendation 2"],
-    "attention_tests": ["Tests that require immediate doctor visit or attention"]
+    "overall_health": "Comprehensive, multi-sentence paragraph summarizing the overall clinical status, key organ system functions, and major areas of concern.",
+    "key_findings": ["Detailed finding 1 with exact numbers", "Detailed finding 2", "Detailed finding 3", "Detailed finding 4"],
+    "abnormal_parameters": ["List of all parameters out of reference range with exact values and units"],
+    "recommendations": ["Actionable medical recommendation 1", "Actionable recommendation 2", "Actionable recommendation 3"],
+    "attention_tests": ["Tests requiring immediate follow-up or medical consultation"]
   },
   "tests": [
     {
-      "test_name": "Name of the medical test (e.g. Hemoglobin, Vitamin D)",
+      "test_name": "Name of the medical test (e.g. Hemoglobin, Vitamin D 25-OH, TSH, Serum Creatinine)",
       "result_val": "Numeric result value with decimal (e.g. 10.5, 32.1) or qualitative (e.g. Positive)",
-      "unit": "Unit of measurement (e.g. g/dL, ng/mL) or null",
-      "normal_range": "Normal range description (e.g. 12-16, >30) or null",
+      "unit": "Unit of measurement (e.g. g/dL, ng/mL, mIU/L) or null",
+      "normal_range": "Normal reference range description (e.g. 12.0 - 16.0, 30.0 - 100.0) or null",
       "status": "Normal" or "Low" or "High" or "Attention",
-      "explanation": "Simple 1-2 sentence explanation of what this test result means, possible lifestyle adjustments, and when to seek advice. Never declare a diagnosis."
+      "explanation": "Detailed 2-3 sentence clinical explanation of what this result means for physiology, potential causes, lifestyle/diet adjustments, and when to seek specialist advice. Never declare a definitive diagnosis."
     }
   ]
 }`;
-            analysisResult = await callGeminiDirect("Analyze this medical report.", systemPrompt, geminiKey, base64, mimeType);
+            let pdfText = "";
+            try { if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) pdfText = await extractTextFromPDF(file); } catch(e){}
+            const promptStr = pdfText ? `Analyze this medical lab report thoroughly. Here is the extracted text from the document:\n\n${pdfText.substring(0, 30000)}` : "Analyze this medical lab report thoroughly.";
+            analysisResult = await callGeminiDirect(promptStr, systemPrompt, geminiKey, base64, mimeType);
             textContent = `Medical analysis of ${file.name}. Overall Health: ${analysisResult.summary?.overall_health}`;
           } else {
-            const systemPrompt = `You are an expert Legal Document Analyzer. Your task is to extract information from the legal agreement and provide a structured JSON report.
-You must return a JSON object with the following schema:
+            const systemPrompt = `You are a senior legal counsel, managing partner, and master contract auditor. Your task is to perform an EXHAUSTIVE, DEEP, LINE-BY-LINE audit of the uploaded legal agreement/contract and produce a highly detailed, head-wise structured JSON report.
+
+CRITICAL MANDATES:
+1. READ THE ENTIRE CONTRACT THOROUGHLY FROM START TO FINISH. DO NOT SKIP ANY PARAGRAPH OR CLAUSE.
+2. EXTRACT EVERY SINGLE CLAUSE, PROVISION, OBLIGATION, RESTRICTION, RULE, PENALTY, BENEFIT, AND RIGHT IN THE CONTRACT. You must extract at least 8 to 20 detailed clauses covering:
+   - Joining dates, commencement terms, contract duration, probation period & confirmation criteria
+   - Fixed salary, base pay, HRA, LTA, allowances, bonuses, ESOPs, variable pay, increments & revision timelines
+   - Mandatory training duties, training bonds, cost repayment penalties, lock-in periods
+   - Notice period duration, garden leave, termination for cause vs without cause, severance pay, buyout options
+   - Restrictive covenants: Non-compete scope, geographic limits, duration, non-solicitation of clients/employees
+   - Intellectual property: Inventions ownership, moral rights, work-for-hire, personal side-project exceptions
+   - Leave policy: Casual leave, earned/annual leave, sick leave, maternity/paternity leave, leave encashment
+   - Working hours, overtime compensation, shift allowances, remote work / WFH policies
+   - Confidentiality, NDA obligations, trade secret protections, duration of secrecy post-employment
+   - Liability, indemnification, strict employee liability, breach penalties, mandatory arbitration & jurisdiction
+   - Exploitation checks: Unfair notice periods, asymmetric penalty fees, unreasonable restraint of trade, underpayment traps
+
+3. FOR EVERY EXTRACTED CLAUSE, YOU MUST PROVIDE:
+   - "clause_title": Clear, descriptive title of the specific clause.
+   - "category": One of 'Termination & Exit', 'Restrictive Covenants', 'Intellectual Property', 'Compensation & Benefits', 'Liability & Disputes', 'Leave & Working Hours', 'Probation & Training', 'Other Provisions'.
+   - "location_reference": Precise paragraph/section reference (e.g. Section 4.2(b), Clause 12, Page 3 Para 2).
+   - "original_text": Direct verbatim text quote or precise snippet from the contract document.
+   - "explanation": In-depth, plain-English translation explaining what this means to an average employee/tenant.
+   - "employee_advantages": Detailed multi-bullet or sentence breakdown of explicit benefits/pros for the individual.
+   - "employee_disadvantages": Detailed multi-bullet or sentence breakdown of explicit risks/cons/penalties for the individual.
+   - "risk_level": "Low", "Medium", or "High".
+   - "detailed_risk_analysis": Deep 3-5 sentence legal advisory detailing real-world consequences, legal enforceability, hidden traps, and actionable negotiation counter-proposals.
+
+YOU MUST RETURN A VALID JSON OBJECT WITH THIS EXACT SCHEMA:
 {
   "summary": {
-    "document_type": "E.g. Lease Agreement, NDA, Employment Contract",
-    "purpose": "1-2 sentences explaining the main objective of this document.",
-    "joining_date": "The exact date of joining/commencement, or 'Not specified'.",
-    "benefits_allowances": "Description of benefits, health insurance, bonuses, or allowances, or 'None specified'.",
-    "training_requirements": "Any training duties, mandated training hours, or cost repayment clauses, or 'None specified'.",
-    "employee_risks": "Risk provisions affecting the employee (e.g. strict liability, indemnification, strict IP ownership).",
-    "exploitation_check": "Detailed assessment of any potential exploitation (e.g. unfair notice periods, penalty fees, excessive hours, unreasonable non-compete clauses, underpayment).",
-    "overall_benefits": ["List of key benefits/advantages for the employee/tenant in this contract"],
-    "overall_disadvantages": ["List of key drawbacks/disadvantages/risks for the employee/tenant in this contract"],
-    "key_dates": ["List of important dates like start date, expiration date, notice milestones"],
-    "responsibilities": ["Responsibility 1", "Responsibility 2"],
-    "payment_terms": "Description of any financial obligations, salary, or security deposit details, or 'N/A'",
-    "termination_conditions": "Details about how either party can end the agreement."
+    "document_type": "Exact contract type (e.g. Senior Employment Agreement, Residential Lease Agreement)",
+    "purpose": "Comprehensive multi-sentence summary of the core contract purpose and all participating parties.",
+    "joining_date": "Exact start/joining date or commencement terms extracted from the contract.",
+    "benefits_allowances": "Exhaustive breakdown of fixed salary, HRA, LTA, allowances, health insurance, bonuses, and perks.",
+    "training_requirements": "Full details of mandatory training, training costs, bonds, lock-in periods, or repayment penalties.",
+    "employee_risks": "Comprehensive summary of all employee liabilities, non-competes, IP forfeitures, and financial penalties.",
+    "exploitation_check": "In-depth assessment of unfair terms, unreasonable notice periods, excessive non-compete durations, penalty fees, or one-sided exit terms.",
+    "overall_benefits": ["Key advantage 1 across document", "Key advantage 2", "Key advantage 3", "Key advantage 4", "Key advantage 5"],
+    "overall_disadvantages": ["Key risk/disadvantage 1 across document", "Key risk/disadvantage 2", "Key risk/disadvantage 3", "Key risk/disadvantage 4"],
+    "key_dates": ["Start date", "Probation end date", "Notice period deadline", "Annual increment review date"],
+    "responsibilities": ["Detailed job duty 1", "Detailed job duty 2", "Detailed job duty 3"],
+    "payment_terms": "Complete breakdown of salary payout date, security deposits, variable pay, and deduction rules.",
+    "termination_conditions": "Comprehensive explanation of termination with cause, without cause, notice period buyouts, and exit procedures."
   },
   "clauses": [
     {
-      "clause_title": "Name of the clause (e.g. Notice Period, Non-Compete, Indemnification)",
-      "category": "One of: 'Termination & Exit', 'Restrictive Covenants', 'Intellectual Property', 'Compensation & Benefits', 'Liability & Disputes', 'Other Provisions'",
-      "location_reference": "Specific paragraph/section (e.g. Section 4.2 or Paragraph 7(a))",
-      "original_text": "Exact text quote or summary of the clause from the document.",
-      "explanation": "Simple plain-English translation explaining what this means to an average person.",
-      "employee_advantages": "Detail any advantages/benefits this clause provides to the employee/tenant.",
-      "employee_disadvantages": "Detail any disadvantages/risks this clause imposes on the employee/tenant.",
-      "risk_level": "Low" or "Medium" or "High",
-      "detailed_risk_analysis": "Deep, multi-sentence advisory explaining the exact risk, potential consequences, and negotiation recommendations."
+      "clause_title": "Clause Title",
+      "category": "Category Name",
+      "location_reference": "Section X.Y",
+      "original_text": "Quote from contract",
+      "explanation": "Plain English translation",
+      "employee_advantages": "Specific pros for employee",
+      "employee_disadvantages": "Specific cons for employee",
+      "risk_level": "High/Medium/Low",
+      "detailed_risk_analysis": "Multi-sentence lawyer negotiation advice"
     }
   ]
 }`;
-            analysisResult = await callGeminiDirect("Analyze this legal agreement.", systemPrompt, geminiKey, base64, mimeType);
+
+            let pdfText = "";
+            try { if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) pdfText = await extractTextFromPDF(file); } catch(e){}
+            const promptStr = pdfText ? `Perform a complete exhaustive audit of this legal agreement. Here is the full extracted text of the contract:\n\n${pdfText.substring(0, 35000)}` : "Perform a complete exhaustive audit of this legal agreement.";
+
+            analysisResult = await callGeminiDirect(promptStr, systemPrompt, geminiKey, base64, mimeType);
             textContent = `Legal analysis of ${file.name}. Document Type: ${analysisResult.summary?.document_type}`;
           }
         } catch (e) {
@@ -819,19 +855,26 @@ You must return a JSON object with the following schema:
         }
       } else {
         // ── No Gemini Key: Use PDF.js to extract real text ──────────────
-        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-          const extractedText = await extractTextFromPDF(file);
-          if (extractedText) {
-            const mined = mineDataFromText(extractedText);
-            textContent = `PDF text extracted (${extractedText.length} characters). ${mined.summary.join(' | ')}`;
-            analysisResult = fileType === 'medical'
-              ? buildEnrichedMedicalMock(file.name, mined)
-              : buildEnrichedLegalMock(file.name, mined);
+        try {
+          if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+            const extractedText = await extractTextFromPDF(file);
+            if (extractedText && extractedText.length > 50) {
+              const mined = mineDataFromText(extractedText);
+              textContent = `PDF text extracted (${extractedText.length} chars). ${(mined.summaryLines || []).join(' | ')}`;
+              analysisResult = fileType === 'medical'
+                ? buildEnrichedMedicalMock(file.name, mined)
+                : buildEnrichedLegalMock(file.name, mined);
+            } else {
+              // PDF loaded but no usable text (e.g. scanned image PDF)
+              textContent = `PDF loaded but no readable text found (may be a scanned image). File: ${file.name}`;
+              analysisResult = fileType === 'medical' ? getDynamicMockMedical(file.name) : getDynamicMockLegal(file.name);
+            }
           } else {
             textContent = `Mocked Local Report. File name: ${file.name}`;
             analysisResult = fileType === 'medical' ? getDynamicMockMedical(file.name) : getDynamicMockLegal(file.name);
           }
-        } else {
+        } catch (pdfErr) {
+          console.warn('PDF.js extraction failed, using keyword mock fallback:', pdfErr);
           textContent = `Mocked Local Report. File name: ${file.name}`;
           analysisResult = fileType === 'medical' ? getDynamicMockMedical(file.name) : getDynamicMockLegal(file.name);
         }
