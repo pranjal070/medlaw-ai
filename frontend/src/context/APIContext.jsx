@@ -76,6 +76,15 @@ const MOCK_LEGAL_RESPONSE = {
     training_requirements: "Mandatory 2-week internal codebase onboarding. No costs associated.",
     employee_risks: "Intellectual property clause is extremely broad, claiming ownership of any ideas developed during the entire employment term, even off-hours.",
     exploitation_check: "Low risk. The contract has standard terms, competitive salary, and reasonable working hours, though the 60-day notice period is slightly above average.",
+    overall_benefits: [
+      "Competitive base salary ($90,000) with semi-monthly payouts.",
+      "Generous health/wellness allowances and 401(k) matching.",
+      "Standard intellectual property protection limited only to working hours."
+    ],
+    overall_disadvantages: [
+      "Restrictive non-compete clause covering 12 months and 50-mile radius.",
+      "Extended 60-day notice period for voluntary resignation."
+    ],
     key_dates: [
       "Start Date: August 1, 2026",
       "Notice Period: 60 days written notification before resignation"
@@ -90,31 +99,47 @@ const MOCK_LEGAL_RESPONSE = {
   clauses: [
     {
       clause_title: "Notice Period",
+      category: "Termination & Exit",
+      location_reference: "Section 7.3",
       original_text: "The employee shall provide a written notice period of sixty days prior to voluntary resignation.",
       explanation: "If you decide to quit, you must let the company know in writing at least 60 days before your final day.",
+      employee_advantages: "Gives you a clear 60-day buffer to transition out and wrap up key deliverables.",
+      employee_disadvantages: "Prevents you from starting a new role quickly, as many employers expect a 2-4 week notice.",
       risk_level: "Medium",
-      risk_explanation: "A 60-day notice is longer than the typical 2-week standard. This may delay your start date at a new job."
+      detailed_risk_analysis: "An in-depth review of Section 7.3 indicates that while a notice period is standard, 60 days is double the industry average for software engineers. This represents a moderate risk because if a prospective employer wants you to start immediately, you might lose the opportunity due to this long contractual commitment. You should negotiate this down to 30 days or coordinate a buyout option."
     },
     {
       clause_title: "Non-Compete Covenant",
+      category: "Restrictive Covenants",
+      location_reference: "Section 12.1",
       original_text: "For a period of 12 months following termination, the employee shall not engage in any activity competitive with the employer within a 50-mile radius.",
       explanation: "For one year after leaving this job, you cannot work for a competitor or start a competing business within 50 miles of your office.",
+      employee_advantages: "No direct benefits to you. Non-competes exist solely to protect the employer's market position.",
+      employee_disadvantages: "Severely restricts your career mobility. You cannot work in your specialty or sector near your current city.",
       risk_level: "High",
-      risk_explanation: "This restricts your career mobility. Non-competes can prevent you from finding local employment in your field."
+      detailed_risk_analysis: "The 12-month post-termination non-compete within a 50-mile radius in Section 12.1 is highly restrictive. If you are terminated or choose to leave, you will be legally barred from taking any software engineering roles in the local tech hub. You should ask to restrict this only to direct client solicitation or narrow down the competitive scope to specific named competitors."
     },
     {
       clause_title: "Intellectual Property Ownership",
+      category: "Intellectual Property",
+      location_reference: "Section 4.2",
       original_text: "All inventions, software code, and processes created by the employee during working hours belong exclusively to the company.",
       explanation: "Any work, code, or ideas you create while working for this company belong to them, not you.",
+      employee_advantages: "Protects you from any personal liability regarding proprietary code built during work hours.",
+      employee_disadvantages: "You cannot reuse codebase structures, designs, or systems you created for this employer in future personal projects.",
       risk_level: "Low",
-      risk_explanation: "This is a standard industry practice. Just make sure not to work on personal side projects during company time."
+      detailed_risk_analysis: "Section 4.2 is a standard and fair intellectual property clause. It is limited to working hours and company-related duties, which is the industry norm. There is low risk here, provided you do not work on personal side projects during work hours or using company-provided devices."
     },
     {
       clause_title: "Governing Jurisdiction",
+      category: "Liability & Disputes",
+      location_reference: "Section 15.4",
       original_text: "This agreement shall be interpreted in accordance with the laws of the State of Delaware, and any disputes shall be arbitrated therein.",
       explanation: "If there is a lawsuit or dispute, it will be handled in Delaware under Delaware laws, regardless of where you live.",
+      employee_advantages: "Delaware has highly defined, predictable, and established corporate and contract laws.",
+      employee_disadvantages: "If you reside elsewhere, traveling to Delaware for legal proceedings or arbitration could be costly and inconvenient.",
       risk_level: "Medium",
-      risk_explanation: "If you reside elsewhere, traveling to Delaware for legal proceedings or arbitration could be costly and inconvenient."
+      detailed_risk_analysis: "The arbitration clause in Section 15.4 mandates Delaware jurisdiction. If a legal dispute arises over unpaid bonuses or termination, you will be forced to hire local counsel in Delaware and travel there, which can be highly expensive. You should request to change the jurisdiction to your local state of residence/employment."
     }
   ]
 };
@@ -227,6 +252,16 @@ const getDynamicMockLegal = (filename) => {
         training_requirements: "Must maintain board certification and complete 50 hours of CME training annually. Malpractice tail coverage is not paid by employer.",
         employee_risks: "Malpractice tail coverage liability upon termination could cost up to $30,500. Non-compete covers a wide 15-mile radius around any of their clinics.",
         exploitation_check: "Medium risk. While base salary and benefits are premium, the malpractice tail coverage transfer and broad non-compete clauses are highly unfavorable to the physician.",
+        overall_benefits: [
+          "High base compensation ($210,000 USD/yr) with RVU bonuses.",
+          "Generous continuing education (CME) allowance of $5,000.",
+          "Comprehensive health coverage and 4 weeks paid annual leave."
+        ],
+        overall_disadvantages: [
+          "Employee must purchase expensive malpractice tail coverage upon exit.",
+          "Highly restrictive 15-mile non-compete covering all employer clinics.",
+          "Extended 90-day notification period for termination without cause."
+        ],
         key_dates: [
           "Start Date: October 1, 2026",
           "Termination Notice: 90 days written notice by either party"
@@ -241,24 +276,36 @@ const getDynamicMockLegal = (filename) => {
       clauses: [
         {
           clause_title: "Termination Notice",
+          category: "Termination & Exit",
+          location_reference: "Section 6.1",
           original_text: "Either party may terminate this agreement without cause upon ninety (90) days prior written notice to the other party.",
           explanation: "You or the employer must give 90 days notice in writing to end the contract without a specific reason.",
+          employee_advantages: "Provides you with a stable 3-month timeline to find a new position if terminated without cause.",
+          employee_disadvantages: "Keeps you locked into this position for 90 days, which might block or delay starting a new clinic or practice.",
           risk_level: "Medium",
-          risk_explanation: "90 days is a long transition period. It may limit your ability to start a new practice quickly."
+          detailed_risk_analysis: "Section 6.1 requires a 90-day notice. For physicians, this is common but can be highly problematic if you receive a better job offer elsewhere, since new practices rarely wait 3 months. You should attempt to reduce this to 60 days, or request an option to buy out the notice period."
         },
         {
           clause_title: "Restrictive Covenant (Non-Compete)",
+          category: "Restrictive Covenants",
+          location_reference: "Section 9.4",
           original_text: "During employment and for 2 years post-termination, Physician shall not practice medicine within a 15-mile radius of any clinic operated by the Employer.",
           explanation: "For two years after leaving, you cannot practice medicine or open a clinic within 15 miles of any of the employer's offices.",
+          employee_advantages: "No advantages for the physician.",
+          employee_disadvantages: "You may be forced to relocate completely to find another medical practice, since 15 miles around all employer clinics covers the entire metropolitan area.",
           risk_level: "High",
-          risk_explanation: "Highly restrictive. Since the employer operates multiple clinics, this could force you to relocate to practice medicine."
+          detailed_risk_analysis: "The 15-mile non-compete in Section 9.4 is extremely wide and extends to *any* clinic operated by the employer. Since they are a multi-clinic network, this effectively locks you out of practicing local medicine. You should negotiate this down to a 5-mile radius and limit it strictly to the specific primary clinic where you treat patients."
         },
         {
           clause_title: "Malpractice Insurance & Tail Coverage",
+          category: "Liability & Disputes",
+          location_reference: "Section 11.2",
           original_text: "Employer shall provide claims-made professional liability insurance. Upon termination, Physician shall be responsible for purchasing tail coverage.",
           explanation: "The employer pays for your malpractice insurance while you work there, but when you leave, you have to pay for the 'tail' coverage yourself.",
+          employee_advantages: "Guarantees malpractice coverage during the active term of employment.",
+          employee_disadvantages: "Places the massive financial burden of buying tail coverage (tens of thousands of dollars) entirely on your shoulders when you leave.",
           risk_level: "High",
-          risk_explanation: "Tail coverage for medical malpractice can be extremely expensive (often tens of thousands of dollars)."
+          detailed_risk_analysis: "Section 11.2 transfers tail coverage cost to you upon termination. Malpractice tail coverage for specialty physicians is highly expensive. You should negotiate to have the employer pay for tail coverage, or at least share the cost 50/50, especially if the termination is initiated by the employer without cause."
         }
       ]
     };
@@ -274,6 +321,14 @@ const getDynamicMockLegal = (filename) => {
         training_requirements: "None.",
         employee_risks: "Severe early termination fee (2 months rent penalty) and total security deposit forfeiture for early lease break.",
         exploitation_check: "Medium risk. The landlord has a right of entry with only 24-hour notice for routine checks, and early termination penalties are highly punitive to the tenant.",
+        overall_benefits: [
+          "Assigned parking space and full access to building amenities included.",
+          "Standard 12-month lease with a fixed monthly rent rate."
+        ],
+        overall_disadvantages: [
+          "Severe early termination penalties including double rent and deposit forfeiture.",
+          "Arbitrary landlord entry allowed on 24-hour notice for any routine check."
+        ],
         key_dates: [
           "Lease Term: 12 months, starting September 1, 2026",
           "Rent Due: On or before the 1st of each calendar month"
@@ -288,24 +343,36 @@ const getDynamicMockLegal = (filename) => {
       clauses: [
         {
           clause_title: "Late Fee Penalty",
+          category: "Compensation & Benefits",
+          location_reference: "Section 3.1",
           original_text: "Rent is due on the 1st. A late charge of $100 shall be assessed if rent is not received by 5:00 PM on the 5th of the month.",
           explanation: "If you pay rent after the 5th day of the month, you will be charged an extra $100.",
+          employee_advantages: "Provides a 4-day grace period before a penalty is officially charged.",
+          employee_disadvantages: "A flat $100 is relatively high for a single late payment.",
           risk_level: "Low",
-          risk_explanation: "Standard grace period and late fee amount in most residential leases."
+          detailed_risk_analysis: "Section 3.1 late fees are standard and follow regional tenancy rules. The grace period is reasonable, making this a low-risk clause as long as you automate payments to clear by the 1st of each month."
         },
         {
           clause_title: "Early Termination Penalty",
+          category: "Termination & Exit",
+          location_reference: "Section 8.2",
           original_text: "In the event of early termination by Tenant, Tenant shall forfeit the security deposit and pay an amount equal to two months' rent.",
           explanation: "If you break the lease early, you lose your deposit and must pay an extra 2 months of rent as a penalty.",
+          employee_advantages: "No advantages for the tenant.",
+          employee_disadvantages: "If you have to move for an emergency, job relocation, or health issue, you stand to lose $5,550 in combined fees.",
           risk_level: "High",
-          risk_explanation: "Very costly. If you have to move for a job or emergency, this penalty is extremely punitive."
+          detailed_risk_analysis: "The early lease termination fee in Section 8.2 is extremely punitive. Many standard leases include a 1-month penalty or allow subleasing. Forfeiting the security deposit *plus* paying 2 months of rent is an exploitative double penalty. You should ask to modify this to a simple 60-day notice with a 1-month penalty, or ensure a sublet clause is explicitly permitted."
         },
         {
           clause_title: "Right of Entry",
+          category: "Other Provisions",
+          location_reference: "Section 10.4",
           original_text: "Landlord reserves the right to enter the premises at any time for emergency repairs, and with a 24-hour notice for routine inspections.",
           explanation: "The landlord can enter your home anytime for emergencies, and needs to give you 24 hours notice for normal visits.",
+          employee_advantages: "Ensures emergency maintenance issues (e.g., leaking pipes) are handled immediately to protect your belongings.",
+          employee_disadvantages: "Landlord can check the property on a regular basis on short notice, compromising your privacy.",
           risk_level: "Medium",
-          risk_explanation: "Standard but can feel intrusive if the landlord conducts frequent 'routine' inspections."
+          detailed_risk_analysis: "While Section 10.4 includes standard emergency access, the 24-hour notice for routine inspections is open to abuse. To protect your privacy, you should request to limit inspections to a maximum of twice a year, or require written tenant confirmation before entry."
         }
       ]
     };
@@ -495,6 +562,8 @@ You must return a JSON object with the following schema:
     "training_requirements": "Any training duties, mandated training hours, or cost repayment clauses, or 'None specified'.",
     "employee_risks": "Risk provisions affecting the employee (e.g. strict liability, indemnification, strict IP ownership).",
     "exploitation_check": "Detailed assessment of any potential exploitation (e.g. unfair notice periods, penalty fees, excessive hours, unreasonable non-compete clauses, underpayment).",
+    "overall_benefits": ["List of key benefits/advantages for the employee/tenant in this contract"],
+    "overall_disadvantages": ["List of key drawbacks/disadvantages/risks for the employee/tenant in this contract"],
     "key_dates": ["List of important dates like start date, expiration date, notice milestones"],
     "responsibilities": ["Responsibility 1", "Responsibility 2"],
     "payment_terms": "Description of any financial obligations, salary, or security deposit details, or 'N/A'",
@@ -503,10 +572,14 @@ You must return a JSON object with the following schema:
   "clauses": [
     {
       "clause_title": "Name of the clause (e.g. Notice Period, Non-Compete, Indemnification)",
+      "category": "One of: 'Termination & Exit', 'Restrictive Covenants', 'Intellectual Property', 'Compensation & Benefits', 'Liability & Disputes', 'Other Provisions'",
+      "location_reference": "Specific paragraph/section (e.g. Section 4.2 or Paragraph 7(a))",
       "original_text": "Exact text quote or summary of the clause from the document.",
       "explanation": "Simple plain-English translation explaining what this means to an average person.",
+      "employee_advantages": "Detail any advantages/benefits this clause provides to the employee/tenant.",
+      "employee_disadvantages": "Detail any disadvantages/risks this clause imposes on the employee/tenant.",
       "risk_level": "Low" or "Medium" or "High",
-      "risk_explanation": "Why this clause is marked with this risk level and what the user should watch out for."
+      "detailed_risk_analysis": "Deep, multi-sentence advisory explaining the exact risk, potential consequences, and negotiation recommendations."
     }
   ]
 }`;
