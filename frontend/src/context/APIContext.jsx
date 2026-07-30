@@ -517,114 +517,206 @@ const extractTextFromPDF = async (file) => {
   }
 };
 
-// ─── Smart Data Mining from Extracted Text ────────────────────────────
+// ─── Smart Data Mining from Extracted Text ─────────────────────────────
 const mineDataFromText = (text) => {
   if (!text) return {};
 
-  // Extract all monetary values: $1,000 / $90,000 / $1.5M etc.
-  const moneyMatches = text.match(/\$[\d,]+(?:\.\d{1,2})?(?:\s*(?:million|M|k|K|USD|per annum|p\.a\.)?)?/g) || [];
-  const money = [...new Set(moneyMatches)].slice(0, 10);
+  const money = [...new Set(text.match(/(?:Rs\.?|INR|USD|\$|₹)\s*[\d,]+(?:\.\d{1,2})?(?:\s*(?:lakhs?|lacs?|crores?|million|k|K|per\s+annum|p\.a\.|per\s+month))?/gi) || [])].slice(0, 12);
+  const datePattern = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}|\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)[,]?\s+\d{4})/gi;
+  const dates = [...new Set(text.match(datePattern) || [])].slice(0, 10);
+  const sectionRefs = [...new Set((text.match(/(?:Section|Clause|Article|Para(?:graph)?|Schedule)\.?\s*[\d]+(?:[.(]\w+[)]?)*/gi) || []))].slice(0, 20);
+  const durations = [...new Set((text.match(/\d+\s*(?:business\s+)?(?:days?|months?|years?|weeks?)/gi) || []))].slice(0, 10);
 
-  // Extract all dates: Jan 1, 2026 / 01/01/2026 / 2026-01-01 / 1st January 2026
-  const datePattern = /(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}|\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})/gi;
-  const dateMatches = text.match(datePattern) || [];
-  const dates = [...new Set(dateMatches)].slice(0, 8);
-
-  // Extract all section/clause references: Section 4.2, Clause 9(a), Article 3
-  const sectionPattern = /(?:Section|Clause|Article|Para(?:graph)?)\.?\s*[\d]+(?:[\.(]\w+[)]?)*/gi;
-  const sectionMatches = text.match(sectionPattern) || [];
-  const sections = [...new Set(sectionMatches)].slice(0, 15);
-
-  // Extract notice/duration periods: 30 days, 90 days, 12 months, 2 years
-  const durationPattern = /\d+\s*(?:business\s+)?(?:days?|months?|years?|weeks?)/gi;
-  const durations = [...new Set(text.match(durationPattern) || [])].slice(0, 8);
-
-  // Extract party names (between/among pattern)
   const partyPattern = /(?:between|by and between|among)\s+([A-Z][^,;.()\n]{3,60}?)(?:\s*[,;(]|\s+and\s+)/g;
   const parties = [];
   let m;
-  while ((m = partyPattern.exec(text)) !== null) {
-    parties.push(m[1].trim());
-    if (parties.length >= 3) break;
+  while ((m = partyPattern.exec(text)) !== null) { parties.push(m[1].trim()); if (parties.length >= 3) break; }
+
+  // Section detection: split into logical paragraphs
+  const lines = text.split(/\n+/).filter(l => l.trim().length > 10);
+  const rawSections = [];
+  let cur = { title: 'Preamble', body: [] };
+  for (const line of lines) {
+    const t = line.trim();
+    const isHeader = /^(\d+\.?\d*\.?\s{1,4}[A-Z]|(?:SECTION|CLAUSE|ARTICLE|SCHEDULE)\s+\d+|[A-Z\s]{5,50}:?\s*$)/i.test(t) && t.length < 100;
+    if (isHeader && cur.body.length > 0) { rawSections.push(cur); cur = { title: t, body: [] }; }
+    else cur.body.push(t);
+  }
+  if (cur.body.length > 0) rawSections.push(cur);
+
+  // Topic keyword classification
+  const TOPICS = {
+    'Compensation & Benefits': ['salary', 'wage', 'compensation', 'pay', 'remuneration', 'stipend', 'ctc', 'package', 'bonus', 'increment', 'hike', 'allowance', 'lta', 'hra', 'da ', 'pf ', 'gratuity', 'provident'],
+    'Termination & Exit': ['terminat', 'resign', 'notice period', 'exit', 'layoff', 'redundan', 'dismissal', 'garden leave', 'separation', 'last working day'],
+    'Restrictive Covenants': ['non-compete', 'non compete', 'non-solicitation', 'compete', 'competitor', 'restrictive covenant', 'restraint of trade', 'solicitation', 'poach'],
+    'Leave & Working Hours': ['leave', 'vacation', 'holiday', 'sick', 'casual leave', 'annual leave', 'maternity', 'paternity', 'time off', 'working hours', 'overtime', 'shift', 'schedule', 'office hours'],
+    'Intellectual Property': ['intellectual property', 'invention', 'patent', 'copyright', 'trademark', 'proprietary', 'trade secret', 'ownership of work', 'moral rights'],
+    'Probation & Confirmation': ['probation', 'trial period', 'initial period', 'confirmation', 'probationary period'],
+    'Confidentiality & NDA': ['confidential', 'non-disclosure', 'nda', 'trade secret', 'disclose', 'proprietary information', 'privacy'],
+    'Liability & Disputes': ['governing law', 'jurisdiction', 'arbitration', 'dispute', 'litigation', 'indemnif', 'liability', 'force majeure', 'breach'],
+    'Benefits & Insurance': ['insurance', 'health', 'medical', 'dental', 'vision', 'pension', 'retirement', 'esi', 'mediclaim', 'group insurance', 'life insurance'],
+    'Training & Development': ['training', 'development', 'certification', 'course', 'education', 'reimbursement', 'bond', 'service agreement'],
+  };
+
+  const classified = {};
+  for (const sec of rawSections) {
+    const combined = (sec.title + ' ' + sec.body.join(' ')).toLowerCase();
+    let matched = 'Other Provisions';
+    for (const [topic, kws] of Object.entries(TOPICS)) {
+      if (kws.some(kw => combined.includes(kw))) { matched = topic; break; }
+    }
+    if (!classified[matched]) classified[matched] = [];
+    classified[matched].push(sec);
   }
 
-  // Build a summary of extracted real data
-  const summary = [];
-  if (money.length > 0) summary.push(`Financial figures found: ${money.join(', ')}`);
-  if (dates.length > 0) summary.push(`Dates found: ${dates.join(', ')}`);
-  if (durations.length > 0) summary.push(`Notice/Duration periods: ${durations.join(', ')}`);
-  if (sections.length > 0) summary.push(`Referenced sections: ${sections.slice(0, 5).join(', ')}`);
-  if (parties.length > 0) summary.push(`Parties identified: ${parties.join(', ')}`);
+  // Build summary lines
+  const summaryLines = [];
+  if (money.length) summaryLines.push(`Financial figures: ${money.join(', ')}`);
+  if (dates.length) summaryLines.push(`Key dates: ${dates.join(', ')}`);
+  if (durations.length) summaryLines.push(`Notice/durations: ${durations.join(', ')}`);
+  if (sectionRefs.length) summaryLines.push(`Sections referenced: ${sectionRefs.slice(0, 6).join(', ')}`);
+  if (parties.length) summaryLines.push(`Parties: ${parties.join(' and ')}`);
 
-  return { money, dates, sections, durations, parties, summary, rawText: text.substring(0, 1500) };
+  return { money, dates, sectionRefs, durations, parties, classified, summaryLines, rawText: text.substring(0, 2000), fullText: text };
 };
 
-// Build enriched mock using real extracted data
+// ─── Build Comprehensive Legal Analysis from PDF Text ────────────────────
 const buildEnrichedLegalMock = (filename, mined) => {
-  const base = getDynamicMockLegal(filename);
-  if (!mined || Object.keys(mined).length === 0) return base;
+  if (!mined || !mined.classified) return getDynamicMockLegal(filename);
 
-  // Patch summary with real data
-  const enriched = JSON.parse(JSON.stringify(base)); // deep clone
+  const { money, dates, durations, parties, classified, summaryLines, rawText } = mined;
 
-  if (mined.dates.length > 0) {
-    enriched.summary.joining_date = mined.dates[0];
-    enriched.summary.key_dates = mined.dates.map(d => `Identified Date: ${d}`);
-  }
-  if (mined.money.length > 0) {
-    enriched.summary.payment_terms = `Financial values extracted from document: ${mined.money.join(', ')}.`;
-  }
-  if (mined.durations.length > 0) {
-    enriched.summary.termination_conditions = `Duration/notice periods found in document: ${mined.durations.join(', ')}.`;
-  }
-  if (mined.parties.length > 0) {
-    enriched.summary.purpose = (enriched.summary.purpose || '') + ` Parties: ${mined.parties.join(' and ')}.`;
-  }
+  // Build overall summary
+  const summary = {
+    document_type: filename.toLowerCase().includes('employ') ? 'Employment Agreement' : filename.toLowerCase().includes('lease') || filename.toLowerCase().includes('rent') ? 'Lease Agreement' : 'Legal Contract',
+    purpose: `Agreement extracted from "${filename}". ${parties.length > 0 ? `Parties identified: ${parties.join(' and ')}.` : 'Parties not clearly identified in text.'}`,
+    joining_date: dates.length > 0 ? dates[0] : 'Not specified in document',
+    benefits_allowances: money.length > 0 ? `Financial values found in document: ${money.slice(0, 5).join(', ')}` : 'No financial figures detected',
+    training_requirements: classified['Training & Development']?.length > 0 ? classified['Training & Development'].map(s => s.body.slice(0, 2).join(' ')).join(' ').substring(0, 300) : 'No training clauses detected',
+    employee_risks: 'Review the Restrictive Covenants, Termination, and IP clauses carefully.',
+    exploitation_check: `PDF successfully scanned. ${summaryLines.length > 0 ? summaryLines[0] : 'No obvious exploitation patterns detected.'}`,
+    overall_benefits: money.length > 0 ? [`Compensation mentioned: ${money.slice(0, 3).join(', ')}`] : ['No clear benefits extracted — check original document'],
+    overall_disadvantages: durations.length > 0 ? [`Notice/restriction periods found: ${durations.slice(0, 3).join(', ')}`] : ['Review all restrictive clauses carefully'],
+    key_dates: dates.length > 0 ? dates.map(d => `Date found: ${d}`) : ['No dates detected in document'],
+    responsibilities: ['Review the full document for role-specific duties'],
+    payment_terms: money.length > 0 ? `Extracted from document: ${money.join(', ')}` : 'No payment terms detected',
+    termination_conditions: durations.length > 0 ? `Duration periods found: ${durations.join(', ')}` : 'Review termination clauses in original document',
+  };
 
-  // Add a real-data clause at the top
-  if (mined.summary.length > 0) {
-    enriched.clauses.unshift({
-      clause_title: '📄 Document Scan Results (Extracted from PDF)',
-      category: 'Other Provisions',
-      location_reference: 'Full Document Scan',
-      original_text: mined.rawText.substring(0, 400) + (mined.rawText.length > 400 ? '...' : ''),
-      explanation: 'This is the actual text extracted from your uploaded PDF document using PDF.js.',
-      employee_advantages: mined.summary.slice(0, 3).join(' | '),
-      employee_disadvantages: 'For complete deep analysis, add a free Gemini API Key in ⚙️ AI API Settings.',
-      risk_level: 'Low',
-      detailed_risk_analysis: `PDF text was successfully read. Extracted data:\n${mined.summary.join('\n')}\n\nNote: Without an AI key, detailed clause-level analysis cannot be generated. The section analysis below is AI-generated based on document type detection.`
+  // Build real clauses from each classified section
+  const clauses = [];
+
+  // First clause: Document Scan Report
+  clauses.push({
+    clause_title: '📄 PDF Scan Report — Extracted Content',
+    category: 'Other Provisions',
+    location_reference: 'Full Document',
+    original_text: rawText.substring(0, 500) + (rawText.length > 500 ? '...' : ''),
+    explanation: `This is the actual text extracted from your PDF file using PDF.js. The app successfully read your document and found: ${summaryLines.join(' | ')}`,
+    employee_advantages: money.length > 0 ? `Financial values detected: ${money.join(', ')}` : 'Document text successfully read.',
+    employee_disadvantages: 'For full AI-powered clause analysis (exact meanings, negotiation advice), add a free Gemini API key in ⚙️ AI API Settings.',
+    risk_level: 'Low',
+    detailed_risk_analysis: `Your PDF was successfully scanned.\n\n📊 Extracted Data Summary:\n${summaryLines.join('\n')}\n\n📋 Topics detected in document:\n${Object.keys(classified).filter(k => k !== 'Other Provisions').join(', ') || 'General contract topics'}\n\n⚠️ Note: Without a Gemini AI key, clause meanings and negotiation advice cannot be generated automatically. Add your free API key to unlock complete analysis.`,
+  });
+
+  // Build one clause card per classified topic with actual document text
+  const topicRiskMap = {
+    'Termination & Exit': 'High', 'Restrictive Covenants': 'High', 'Liability & Disputes': 'High',
+    'Intellectual Property': 'Medium', 'Confidentiality & NDA': 'Medium', 'Training & Development': 'Medium',
+    'Probation & Confirmation': 'Medium', 'Compensation & Benefits': 'Low',
+    'Leave & Working Hours': 'Low', 'Benefits & Insurance': 'Low',
+  };
+
+  const topicAdvice = {
+    'Termination & Exit': 'Check exact notice period length, whether garden leave applies, and if termination for cause is clearly defined to protect yourself.',
+    'Restrictive Covenants': 'Non-compete and non-solicitation clauses can restrict your future employment. Negotiate to limit scope, geography, and duration.',
+    'Intellectual Property': 'Ensure this only covers work done during office hours on company projects — not your personal creations.',
+    'Confidentiality & NDA': 'Check what information is considered confidential and for how long the obligation continues after leaving.',
+    'Compensation & Benefits': 'Confirm fixed vs. variable pay split, performance bonus conditions, and when increments are reviewed.',
+    'Leave & Working Hours': 'Verify leave entitlements, carry-forward rules, encashment rights, and overtime compensation policy.',
+    'Training & Development': 'Check if there is a service bond requiring you to stay for a fixed period after training, and what the penalty is for leaving early.',
+    'Liability & Disputes': 'Confirm the jurisdiction and whether arbitration is mandatory — this affects your ability to take disputes to court.',
+    'Benefits & Insurance': 'Verify exactly what medical/insurance coverage is provided and whether family members are covered.',
+    'Probation & Confirmation': 'Understand the evaluation criteria for confirmation and whether notice period during probation is shorter.',
+  };
+
+  for (const [topic, sections] of Object.entries(classified)) {
+    if (topic === 'Other Provisions') continue;
+    const sectionTexts = sections.map(s => s.body.join(' ').substring(0, 300)).join(' ');
+    const sectionTitles = sections.map(s => s.title).join(', ');
+
+    clauses.push({
+      clause_title: topic,
+      category: topic,
+      location_reference: sectionTitles.substring(0, 60) || 'Detected in document',
+      original_text: sectionTexts.substring(0, 400) + (sectionTexts.length > 400 ? '...' : ''),
+      explanation: `Your document contains a ${topic} section. The actual text from your PDF is shown above. This section covers obligations and rights related to ${topic.toLowerCase()}.`,
+      employee_advantages: `Contains specific terms about ${topic.toLowerCase()} which defines your rights in this area.`,
+      employee_disadvantages: `Review this section carefully — any unfavorable terms about ${topic.toLowerCase()} are legally binding once you sign.`,
+      risk_level: topicRiskMap[topic] || 'Medium',
+      detailed_risk_analysis: topicAdvice[topic] || `Review the ${topic} section with a qualified legal advisor before signing.`,
     });
   }
 
-  return enriched;
+  // Add other provisions as catch-all
+  if (classified['Other Provisions']?.length > 0) {
+    const otherText = classified['Other Provisions'].slice(0, 3).map(s => s.body.slice(0, 2).join(' ')).join(' ');
+    clauses.push({
+      clause_title: 'Other Provisions',
+      category: 'Other Provisions',
+      location_reference: 'Various sections',
+      original_text: otherText.substring(0, 400),
+      explanation: 'Additional terms found in the document that do not fall under the main categories above.',
+      employee_advantages: 'Covers miscellaneous terms that may include additional employee protections.',
+      employee_disadvantages: 'Miscellaneous clauses can sometimes contain important obligations that are easy to miss.',
+      risk_level: 'Low',
+      detailed_risk_analysis: 'Read all miscellaneous provisions carefully. Companies sometimes include important obligations under general or miscellaneous headings.',
+    });
+  }
+
+  return { summary, clauses };
 };
 
 const buildEnrichedMedicalMock = (filename, mined) => {
   const base = getDynamicMockMedical(filename);
-  if (!mined || mined.rawText === undefined) return base;
+  if (!mined || !mined.rawText) return base;
 
   const enriched = JSON.parse(JSON.stringify(base));
+  const text = mined.rawText;
 
-  // Try to extract test values from PDF text
-  const testPattern = /([A-Za-z][A-Za-z\s\-/()]+)\s*[:]?\s*([\d.]+)\s*(g\/dL|mg\/dL|ng\/mL|IU\/L|mmol\/L|%|K\/uL|M\/uL|mEq\/L)?/g;
+  // Medical test extraction: look for lab value patterns
+  const testPattern = /([A-Za-z][A-Za-z\s\-/()]{3,35})\s*[:\-]?\s*([\d.]+)\s*(g\/dL|mg\/dL|ng\/mL|IU\/L|mmol\/L|umol\/L|mEq\/L|%|K\/uL|M\/uL|U\/L|pg\/mL|nmol\/L|mcg\/dL)?/g;
+  const skipWords = /^(and|the|for|with|from|this|that|page|date|name|test|result|ref|range|value|normal|patient|report|doctor|hospital|lab|age|sex|male|female|gender|sample|type|time|total|unit|method)/i;
   const foundTests = [];
   let tm;
-  while ((tm = testPattern.exec(mined.rawText)) !== null) {
+  while ((tm = testPattern.exec(text)) !== null) {
     const name = tm[1].trim();
     const val = tm[2];
     const unit = tm[3] || '';
-    if (name.length > 3 && name.length < 40 && !name.match(/^(and|the|for|with|from|this|that|page|date|name|test|result)$/i)) {
-      foundTests.push({ test_name: name, result_val: val, unit, status: 'Extracted', normal_range: 'See report', explanation: `Extracted value from your PDF. Please verify with your doctor.` });
+    if (name.length >= 3 && name.length < 40 && !skipWords.test(name) && parseFloat(val) > 0) {
+      foundTests.push({
+        test_name: name,
+        result_val: val,
+        unit,
+        status: 'Extracted',
+        normal_range: 'Refer to lab reference range',
+        explanation: `Value extracted directly from your PDF. This reads ${val} ${unit}. Please compare with the reference range shown in your report and consult your doctor.`,
+      });
     }
-    if (foundTests.length >= 6) break;
+    if (foundTests.length >= 12) break;
   }
 
   if (foundTests.length > 0) {
     enriched.tests = foundTests;
-    enriched.summary.overall_health = `PDF text extracted successfully. Found ${foundTests.length} test values in your document. Values shown are directly read from your uploaded file. For complete AI-powered interpretation, please add a Gemini API key.`;
-    enriched.summary.key_findings = foundTests.slice(0, 3).map(t => `${t.test_name}: ${t.result_val} ${t.unit}`);
+    enriched.summary.overall_health = `Your PDF was scanned successfully. Found ${foundTests.length} lab values directly in your document — values are extracted from your actual file. For AI-powered interpretation, add a free Gemini API key.`;
+    enriched.summary.key_findings = foundTests.slice(0, 5).map(t => `${t.test_name}: ${t.result_val} ${t.unit} (extracted from PDF)`);
+    enriched.summary.recommendations = [
+      'Values shown are directly read from your uploaded PDF.',
+      'Compare each value against the reference ranges in your original report.',
+      'Consult your doctor for interpretation of any abnormal values.',
+      'For AI-powered analysis, add your Gemini API key in ⚙️ AI API Settings.',
+    ];
   }
-
   return enriched;
 };
 
