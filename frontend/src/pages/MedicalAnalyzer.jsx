@@ -12,7 +12,12 @@ import {
   TrendingUp,
   Loader2,
   Heart,
-  Plus
+  Plus,
+  Utensils,
+  Ban,
+  ShieldAlert,
+  Check,
+  Stethoscope
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -30,7 +35,6 @@ export default function MedicalAnalyzer() {
     if (id) {
       fetchDocumentDetails();
     } else {
-      // If no ID is provided, redirect to dashboard or show a select list
       setLoading(false);
     }
   }, [id]);
@@ -82,15 +86,19 @@ export default function MedicalAnalyzer() {
   // Parse structured summary JSON
   let summary = {
     overall_health: 'No summary parsed',
+    health_decision: '',
     key_findings: [],
     abnormal_parameters: [],
+    precautions: [],
+    what_to_eat: [],
+    what_to_stop: [],
     recommendations: [],
     attention_tests: []
   };
 
   try {
     if (document.summary_json) {
-      summary = JSON.parse(document.summary_json);
+      summary = { ...summary, ...JSON.parse(document.summary_json) };
     }
   } catch (e) {
     console.error('Error parsing summary json:', e);
@@ -113,6 +121,15 @@ export default function MedicalAnalyzer() {
     { name: 'Remaining', value: 100 - healthScore, color: '#f1f5f9' }
   ];
 
+  // Determine health decision status badge colors
+  let decisionBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+  let decisionText = summary.health_decision || "Routine Health Screening";
+  if (abnormalCount >= 3 || decisionText.includes("Urgently")) {
+    decisionBadgeClass = "bg-red-50 text-red-700 border-red-200";
+  } else if (abnormalCount >= 1 || decisionText.includes("Attention")) {
+    decisionBadgeClass = "bg-amber-50 text-amber-800 border-amber-200";
+  }
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-16">
       {/* HEADER ACTIONS & TITLE */}
@@ -125,10 +142,17 @@ export default function MedicalAnalyzer() {
           Back to Dashboard
         </button>
 
-        {/* File Name Tag */}
-        <div className="flex items-center gap-2 bg-slate-105 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200">
-          <Activity className="w-4 h-4 text-slate-500" />
-          <span>Analyzing: {document.filename}</span>
+        {/* File Name Tag & AI Decision Badge */}
+        <div className="flex items-center gap-3">
+          <div className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold flex items-center gap-2 ${decisionBadgeClass}`}>
+            <Stethoscope className="w-4 h-4 shrink-0" />
+            <span>AI Decision: {decisionText}</span>
+          </div>
+
+          <div className="flex items-center gap-2 bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200">
+            <Activity className="w-4 h-4 text-slate-500" />
+            <span>Report: {document.filename}</span>
+          </div>
         </div>
       </div>
 
@@ -137,7 +161,7 @@ export default function MedicalAnalyzer() {
         {/* Health Score Gauge */}
         <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center relative overflow-hidden">
           <h3 className="text-sm font-bold text-slate-800 self-start">Calculated Health Score</h3>
-          <p className="text-[10px] text-slate-400 self-start mt-0.5">Based on abnormal test parameters</p>
+          <p className="text-[10px] text-slate-400 self-start mt-0.5">Based on abnormal lab test parameters</p>
           
           <div className="w-40 h-40 mt-4 relative flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
@@ -177,7 +201,7 @@ export default function MedicalAnalyzer() {
           </div>
         </div>
 
-        {/* Health Status & Recommendations Summary */}
+        {/* Health Status & Summary */}
         <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
           <div className="space-y-4">
             <div>
@@ -186,7 +210,7 @@ export default function MedicalAnalyzer() {
               </span>
               <h3 className="text-lg font-bold text-slate-850 mt-2">Overall Health Outlook</h3>
             </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs text-slate-600 leading-relaxed font-normal">
               {summary.overall_health || "AI summary generation could not parse valid details."}
             </p>
           </div>
@@ -212,6 +236,78 @@ export default function MedicalAnalyzer() {
         </div>
       </div>
 
+      {/* THREE ACTIONABLE CARDS: WHAT TO DO, WHAT TO EAT, WHAT TO STOP */}
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* 1. Precautions / What to Do */}
+        <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-amber-50 rounded-xl border border-amber-100 text-amber-700">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-slate-850">Precautions & What to Do</h3>
+              <p className="text-[10px] text-slate-400">Action items based on your lab results</p>
+            </div>
+          </div>
+          <ul className="space-y-3 pt-1">
+            {(summary.precautions && summary.precautions.length > 0 ? summary.precautions : summary.recommendations).map((item, idx) => (
+              <li key={idx} className="text-xs text-slate-650 flex items-start gap-2.5 leading-relaxed">
+                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full shrink-0 mt-1.5"></span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* 2. What to Eat / Dietary Advice */}
+        <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-700">
+              <Utensils className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-slate-850">🥗 What to Eat (Dietary Guide)</h3>
+              <p className="text-[10px] text-slate-400">Foods & nutrients to add to your diet</p>
+            </div>
+          </div>
+          <ul className="space-y-3 pt-1">
+            {(summary.what_to_eat && summary.what_to_eat.length > 0 ? summary.what_to_eat : [
+              "Incorporate fresh leafy greens, fruits, whole grains, and clean proteins.",
+              "Maintain consistent daily water hydration."
+            ]).map((item, idx) => (
+              <li key={idx} className="text-xs text-slate-650 flex items-start gap-2.5 leading-relaxed">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* 3. What to Stop / Avoid */}
+        <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-red-50 rounded-xl border border-red-100 text-red-700">
+              <Ban className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-slate-850">🚫 What to Stop / Avoid</h3>
+              <p className="text-[10px] text-slate-400">Items, habits & foods to minimize or avoid</p>
+            </div>
+          </div>
+          <ul className="space-y-3 pt-1">
+            {(summary.what_to_stop && summary.what_to_stop.length > 0 ? summary.what_to_stop : [
+              "Avoid highly processed snacks, trans fats, and excess refined sugar.",
+              "Limit alcohol and avoid unverified dietary supplements."
+            ]).map((item, idx) => (
+              <li key={idx} className="text-xs text-slate-650 flex items-start gap-2.5 leading-relaxed">
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-full shrink-0 mt-1.5"></span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
       {/* DISCLAIMER BAR */}
       <div className="p-4 bg-amber-50/50 border border-amber-200/80 text-amber-800 text-xs rounded-xl flex items-start gap-3 shadow-inner">
         <Heart className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -227,7 +323,7 @@ export default function MedicalAnalyzer() {
       <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100">
           <h3 className="font-bold text-slate-800">Extracted Test Parameters</h3>
-          <p className="text-[10px] text-slate-400 mt-0.5">Structured tabular format of laboratory parameters</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Structured tabular format of laboratory parameters read from PDF</p>
         </div>
 
         <div className="overflow-x-auto">
@@ -238,7 +334,7 @@ export default function MedicalAnalyzer() {
                 <th className="px-6 py-3">Result</th>
                 <th className="px-6 py-3">Reference Range</th>
                 <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">AI Explanation Summary</th>
+                <th className="px-6 py-3">AI Explanation & Guidance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
@@ -256,7 +352,7 @@ export default function MedicalAnalyzer() {
                     </td>
                     <td className="px-6 py-4 text-slate-500 font-mono">{test.normal_range || 'N/A'}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${badgeClass}`}>
                         {test.status}
                       </span>
                     </td>
@@ -269,41 +365,25 @@ export default function MedicalAnalyzer() {
         </div>
       </div>
 
-      {/* HEALTH INSIGHTS AND ADVISORY CARDS */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Key Findings */}
+      {/* KEY OBSERVATIONS CARD */}
+      {summary.key_findings && summary.key_findings.length > 0 && (
         <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-4">
           <h3 className="font-bold text-slate-850 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-amber-600" />
-            Key Observations
+            Key Clinical Observations
           </h3>
-          <ul className="space-y-3">
+          <ul className="grid sm:grid-cols-2 gap-3">
             {summary.key_findings.map((item, idx) => (
-              <li key={idx} className="text-xs text-slate-600 flex items-start gap-2.5 leading-relaxed">
+              <li key={idx} className="text-xs text-slate-600 flex items-start gap-2.5 leading-relaxed bg-slate-50/50 p-3 rounded-xl border border-slate-100">
                 <span className="w-1.5 h-1.5 bg-amber-500 rounded-full shrink-0 mt-1.5"></span>
-                {item}
+                <span>{item}</span>
               </li>
             ))}
           </ul>
         </div>
-
-        {/* Recommendations */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-4">
-          <h3 className="font-bold text-slate-850 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-primary-650" />
-            Suggested Lifestyle Tips
-          </h3>
-          <ul className="space-y-3">
-            {summary.recommendations.map((item, idx) => (
-              <li key={idx} className="text-xs text-slate-600 flex items-start gap-2.5 leading-relaxed">
-                <span className="w-1.5 h-1.5 bg-primary-500 rounded-full shrink-0 mt-1.5"></span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      )}
 
     </div>
   );
 }
+

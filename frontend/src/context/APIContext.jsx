@@ -98,7 +98,14 @@ const MOCK_LEGAL_RESPONSE = {
       "Maintain strict confidentiality of proprietary company materials."
     ],
     payment_terms: "Base salary of $90,000 USD per annum, payable in semi-monthly installments, plus eligibility for performance bonuses.",
-    termination_conditions: "Can be terminated by either party with a 60-day written notice, or immediately by the employer 'For Cause' without notice."
+    termination_conditions: "Can be terminated by either party with a 60-day written notice, or immediately by the employer 'For Cause' without notice.",
+    contract_parties: {
+      primary_party: "Apex Healthcare Group LLC (Employer / First Party)",
+      secondary_party: "Dr. Sarah Jenkins, MD (Employee / Physician / Second Party)",
+      executed_through: "Corporate HR & Legal Operations Division",
+      governing_jurisdiction: "State of Delaware, USA / Mandatory Binding Arbitration"
+    },
+    detailed_case_brief: "This contract establishes a binding clinical employment relationship between Apex Healthcare Group LLC (First Party) and Dr. Sarah Jenkins, MD (Second Party). Executed through the Corporate HR & Legal Operations Division, the agreement outlines clinical duties, $210,000 base compensation, RVU performance bonuses, 90-day termination notice requirements, 15-mile non-compete obligations, and malpractice tail insurance liabilities under Delaware jurisdiction."
   },
   clauses: [
     {
@@ -527,10 +534,31 @@ const mineDataFromText = (text) => {
   const sectionRefs = [...new Set((text.match(/(?:Section|Clause|Article|Para(?:graph)?|Schedule)\.?\s*[\d]+(?:[.(]\w+[)]?)*/gi) || []))].slice(0, 20);
   const durations = [...new Set((text.match(/\d+\s*(?:business\s+)?(?:days?|months?|years?|weeks?)/gi) || []))].slice(0, 10);
 
-  const partyPattern = /(?:between|by and between|among)\s+([A-Z][^,;.()\n]{3,60}?)(?:\s*[,;(]|\s+and\s+)/g;
+  // Extract corporate entities & party names from preamble text
   const parties = [];
-  let m;
-  while ((m = partyPattern.exec(text)) !== null) { parties.push(m[1].trim()); if (parties.length >= 3) break; }
+  const preamble = text.substring(0, 3000);
+  
+  const preambleMatch = preamble.match(/(?:between|by and between|entered into by)\s+([^\n,;(]+?)\s+(?:and|with)\s+([^\n,;(]+)/i);
+  if (preambleMatch) {
+    if (preambleMatch[1]?.trim()) parties.push(preambleMatch[1].trim().replace(/^the\s+/i, ''));
+    if (preambleMatch[2]?.trim()) parties.push(preambleMatch[2].trim().replace(/^the\s+/i, ''));
+  }
+
+  const corpMatches = preamble.match(/\b([A-Z][A-Za-z0-9\s&'-]{2,40}\s+(?:LLC|Inc\.?|Corp\.?|Corporation|Ltd\.?|Limited|Pvt\.?\s*Ltd\.?|LLP|Group|Hospital|Clinic|Services|Holdings))\b/g);
+  if (corpMatches) {
+    corpMatches.forEach(c => {
+      const clean = c.trim();
+      if (!parties.includes(clean)) parties.push(clean);
+    });
+  }
+
+  const personMatches = preamble.match(/\b((?:Dr\.|Mr\.|Ms\.|Mrs\.|Adv\.|Prof\.)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/g);
+  if (personMatches) {
+    personMatches.forEach(p => {
+      const clean = p.trim();
+      if (!parties.includes(clean)) parties.push(clean);
+    });
+  }
 
   // Section detection: split into logical paragraphs
   const lines = text.split(/\n+/).filter(l => l.trim().length > 10);
@@ -601,6 +629,13 @@ const buildEnrichedLegalMock = (filename, mined) => {
     responsibilities: ['Review the full document for role-specific duties'],
     payment_terms: money.length > 0 ? `Extracted from document: ${money.join(', ')}` : 'No payment terms detected',
     termination_conditions: durations.length > 0 ? `Duration periods found: ${durations.join(', ')}` : 'Review termination clauses in original document',
+    contract_parties: {
+      primary_party: parties[0] ? `${parties[0]} (First Party / Employer / Issuer)` : 'First Party / Employer (Not explicitly identified)',
+      secondary_party: parties[1] ? `${parties[1]} (Second Party / Employee / Individual)` : 'Second Party / Employee / Individual',
+      executed_through: parties[2] ? `Executed through ${parties[2]}` : 'Corporate Legal & Operational Management',
+      governing_jurisdiction: classified['Liability & Disputes']?.length > 0 ? 'Jurisdiction & Disputes Clause Detected' : 'Standard Legal Jurisdiction'
+    },
+    detailed_case_brief: `Case & Agreement Brief: Legal contract extracted from file "${filename}". ${parties.length > 0 ? `Executed between ${parties.join(' and ')}.` : 'Parties are bound under terms outlined in the document.'} Key financial terms identified: ${money.length > 0 ? money.slice(0, 4).join(', ') : 'None specified'}. Notice and exit duration rules identified: ${durations.length > 0 ? durations.slice(0, 3).join(', ') : 'Standard notice terms'}.`
   };
 
   // Build real clauses from each classified section
@@ -824,7 +859,14 @@ YOU MUST RETURN A VALID JSON OBJECT WITH THIS EXACT SCHEMA:
     "key_dates": ["Start date", "Probation end date", "Notice period deadline", "Annual increment review date"],
     "responsibilities": ["Detailed job duty 1", "Detailed job duty 2", "Detailed job duty 3"],
     "payment_terms": "Complete breakdown of salary payout date, security deposits, variable pay, and deduction rules.",
-    "termination_conditions": "Comprehensive explanation of termination with cause, without cause, notice period buyouts, and exit procedures."
+    "termination_conditions": "Comprehensive explanation of termination with cause, without cause, notice period buyouts, and exit procedures.",
+    "contract_parties": {
+      "primary_party": "Name of First Party / Employer / Lessor / Company / Issuing Authority (kiske name pr / who issued)",
+      "secondary_party": "Name of Second Party / Employee / Lessee / Individual bound by contract",
+      "executed_through": "Entity, representative, division, or legal counsel through whom contract is executed (kiske through)",
+      "governing_jurisdiction": "Governing Law, High Court jurisdiction, or binding arbitration authority"
+    },
+    "detailed_case_brief": "An in-depth 4-5 sentence legal brief detailing the background, context, core legal nature, purpose, and relationship established under this contract/case."
   },
   "clauses": [
     {

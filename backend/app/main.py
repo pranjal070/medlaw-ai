@@ -117,29 +117,30 @@ async def upload_document(
         
     # Step 2: Perform AI Analysis using Gemini
     analysis_result = {}
+    # Always provide original binary bytes for PDFs & images so Gemini can perform native multimodal document analysis
+    is_pdf_or_image = mime_type in ["image/png", "image/jpeg", "image/jpg", "application/pdf"] or file_ext.lower() in [".pdf", ".png", ".jpg", ".jpeg"]
+    bytes_to_send = file_bytes if is_pdf_or_image else None
+    m_type_to_send = mime_type if is_pdf_or_image else None
+    if is_pdf_or_image and not m_type_to_send:
+        m_type_to_send = "application/pdf" if file_ext.lower() == ".pdf" else "image/jpeg"
+
     if file_type == "medical":
-        # If text extraction yielded nothing (e.g. scanned image/PDF), we send file bytes to Gemini.
-        is_scanned = len(text_content.strip()) < 50
-        bytes_to_send = file_bytes if (is_scanned and mime_type in ["image/png", "image/jpeg", "application/pdf"]) else None
-        m_type_to_send = mime_type if bytes_to_send else None
-        
         analysis_result = gemini.analyze_medical_document(
             text_content=text_content,
             file_bytes=bytes_to_send,
             mime_type=m_type_to_send,
-            api_key=api_key
+            api_key=api_key,
+            filename=file.filename
         )
     else:
-        is_scanned = len(text_content.strip()) < 50
-        bytes_to_send = file_bytes if (is_scanned and mime_type in ["image/png", "image/jpeg", "application/pdf"]) else None
-        m_type_to_send = mime_type if bytes_to_send else None
-        
         analysis_result = gemini.analyze_legal_document(
             text_content=text_content,
             file_bytes=bytes_to_send,
             mime_type=m_type_to_send,
-            api_key=api_key
+            api_key=api_key,
+            filename=file.filename
         )
+
 
     # If the text content was empty (scanned image) but Gemini returned results, 
     # we can synthesize a readable text content from the summary

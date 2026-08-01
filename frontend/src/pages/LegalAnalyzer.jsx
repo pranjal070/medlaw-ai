@@ -13,7 +13,12 @@ import {
   AlertCircle,
   Clock,
   Briefcase,
-  DollarSign
+  DollarSign,
+  UserCheck,
+  Building2,
+  ShieldCheck,
+  BookOpen,
+  FileCheck
 } from 'lucide-react';
 
 export default function LegalAnalyzer() {
@@ -132,6 +137,89 @@ export default function LegalAnalyzer() {
         <div className="flex items-center gap-2 bg-slate-105 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200">
           <FileText className="w-4 h-4 text-slate-500" />
           <span>Analyzing: {document.filename}</span>
+        </div>
+      </div>
+
+      {/* CONTRACT IDENTIFICATION & EXECUTIVE CASE BRIEF */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-indigo-950 border border-slate-800 rounded-2xl p-6 shadow-xl text-white space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+              <Scale className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold tracking-widest uppercase text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded border border-indigo-500/20">
+                Contract Parties & Case Identification
+              </span>
+              <h2 className="text-lg font-extrabold text-white mt-1">
+                {summary.document_type || 'Legal Agreement Audit'}
+              </h2>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-slate-800/80 px-3.5 py-1.5 rounded-xl border border-slate-700/50 text-xs font-semibold text-slate-300">
+            <FileCheck className="w-4 h-4 text-emerald-400" />
+            <span>Document Binding Status: Active Agreement</span>
+          </div>
+        </div>
+
+        {/* Contracting Parties Grid */}
+        <div className="grid md:grid-cols-3 gap-4">
+          {/* First Party (Employer/Lessor/Company) */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+            <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-wider">
+              <Building2 className="w-4 h-4 shrink-0" />
+              <span>Contract Under Name Of (Issuer / 1st Party)</span>
+            </div>
+            <p className="text-sm font-bold text-white">
+              {summary.contract_parties?.primary_party || summary.parties_identified?.[0] || 'First Party / Employer (Extracted from Document)'}
+            </p>
+            <p className="text-[11px] text-slate-400 leading-snug">
+              <span className="text-slate-500 font-bold">Executed Through: </span>
+              {summary.contract_parties?.executed_through || 'Corporate Legal & Operational Division'}
+            </p>
+          </div>
+
+          {/* Second Party (Employee/Lessee/Individual) */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+            <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+              <UserCheck className="w-4 h-4 shrink-0" />
+              <span>Bound Party (Individual / 2nd Party)</span>
+            </div>
+            <p className="text-sm font-bold text-white">
+              {summary.contract_parties?.secondary_party || summary.parties_identified?.[1] || 'Second Party / Employee (Extracted from Document)'}
+            </p>
+            <p className="text-[11px] text-slate-400 leading-snug">
+              <span className="text-slate-500 font-bold">Contract Classification: </span>
+              {summary.document_type || 'Legal Agreement'}
+            </p>
+          </div>
+
+          {/* Governing Jurisdiction */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-2">
+            <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span>Jurisdiction & Legal Authority</span>
+            </div>
+            <p className="text-sm font-bold text-white">
+              {summary.contract_parties?.governing_jurisdiction || 'High Court Jurisdiction / Governing State Law'}
+            </p>
+            <p className="text-[11px] text-slate-400 leading-snug">
+              <span className="text-slate-500 font-bold">Dispute Resolution: </span>
+              Binding Arbitration / Legal Forum Clause
+            </p>
+          </div>
+        </div>
+
+        {/* Executive Case Brief / Agreement Overview */}
+        <div className="bg-slate-900/95 border border-indigo-500/30 rounded-xl p-4.5 space-y-2">
+          <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+            <BookOpen className="w-4 h-4 text-indigo-400" />
+            <span>Brief Executive Case & Contract Explanation</span>
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed font-normal">
+            {summary.detailed_case_brief || summary.purpose || 'This agreement outlines the binding contractual relationship between the parties. It governs the terms of engagement, financial obligations, restrictive non-compete covenants, intellectual property rights, notice period expectations, and dispute resolution parameters under governing law.'}
+          </p>
         </div>
       </div>
 
