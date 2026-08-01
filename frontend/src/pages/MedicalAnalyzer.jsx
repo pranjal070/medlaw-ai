@@ -331,38 +331,48 @@ export default function MedicalAnalyzer() {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-150 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 <th className="px-6 py-3">Test Parameter</th>
-                <th className="px-6 py-3">Result</th>
+                <th className="px-6 py-3">Observed Value</th>
                 <th className="px-6 py-3">Reference Range</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">AI Explanation & Guidance</th>
+                <th className="px-6 py-3">Evaluation Status</th>
+                <th className="px-6 py-3">Clinical Guidance & Summary</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {tests.map((test) => {
-                let badgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-100';
-                if (test.status === 'Low') badgeClass = 'bg-blue-50 text-blue-700 border border-blue-100';
-                else if (test.status === 'High') badgeClass = 'bg-red-50 text-red-700 border border-red-100';
-                else if (test.status === 'Attention') badgeClass = 'bg-amber-50 text-amber-700 border border-amber-100';
+                let badgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                let labelText = '🟢 Correct (Normal)';
+
+                if (test.status === 'Low') {
+                  badgeClass = 'bg-blue-50 text-blue-700 border border-blue-200';
+                  labelText = '🔵 Low (Out of Range)';
+                } else if (test.status === 'High') {
+                  badgeClass = 'bg-red-50 text-red-700 border border-red-200';
+                  labelText = '🔴 High (Out of Range)';
+                } else if (test.status === 'Attention') {
+                  badgeClass = 'bg-amber-50 text-amber-800 border border-amber-200';
+                  labelText = '🟡 Attention Required';
+                }
 
                 return (
                   <tr key={test.id} className="hover:bg-slate-50/30">
                     <td className="px-6 py-4 font-bold text-slate-800">{test.test_name}</td>
-                    <td className="px-6 py-4 font-mono font-semibold text-slate-700">
+                    <td className="px-6 py-4 font-mono font-bold text-slate-700">
                       {test.result_val} <span className="text-[10px] text-slate-400 font-normal">{test.unit}</span>
                     </td>
                     <td className="px-6 py-4 text-slate-500 font-mono">{test.normal_range || 'N/A'}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${badgeClass}`}>
-                        {test.status}
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${badgeClass}`}>
+                        {labelText}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-500 max-w-sm leading-relaxed">{test.explanation || 'No explanation generated.'}</td>
+                    <td className="px-6 py-4 text-slate-600 max-w-sm leading-relaxed">{test.explanation || 'No explanation generated.'}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
+
       </div>
 
       {/* KEY OBSERVATIONS CARD */}
