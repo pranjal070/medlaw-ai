@@ -1,36 +1,48 @@
+import fitz
 import io
-import os
-from typing import List, Tuple, Optional
-import pypdf
+from typing import List, Tuple, Dict, Any
 from PIL import Image
 
-def render_pdf_pages_to_images(file_path: str, max_pages: int = 20) -> List[Tuple[bytes, str]]:
+def extract_all_pages(file_path: str) -> Dict[str, Any]:
     """
-    Extracts or renders images for ALL pages of a PDF document.
-    Returns a list of (image_bytes, mime_type) tuples.
+    Renders EVERY SINGLE PAGE of a PDF into high-res images and extracts page text.
+    Logs debug metrics for page counts and OCR success.
     """
-    image_payloads = []
+    page_images = []
+    page_texts = []
     
     try:
-        reader = pypdf.PdfReader(file_path)
-        num_pages = min(len(reader.pages), max_pages)
+        doc = fitz.open(file_path)
+        total_pages = len(doc)
+        print(f"[DEBUG LOG] Processing PDF Document: {file_path}")
+        print(f"[DEBUG LOG] Total Pages Processed: {total_pages}")
         
-        for page_idx in range(num_pages):
-            page = reader.pages[page_idx]
+        for i in range(total_pages):
+            page = doc[i]
+            text = page.get_text().strip()
+            page_texts.append(text)
             
-            # Extract images embedded directly in the PDF page
-            if page.images:
-                for img_obj in page.images:
-                    try:
-                        img_bytes = img_obj.data
-                        img = Image.open(io.BytesIO(img_bytes))
-                        out_buffer = io.BytesIO()
-                        img.convert("RGB").save(out_buffer, format="PNG")
-                        image_payloads.append((out_buffer.getvalue(), "image/png"))
-                    except Exception as e:
-                        print(f"Error reading page {page_idx+1} image: {e}")
-                        
-    except Exception as e:
-        print(f"Error rendering PDF pages to images: {e}")
+            # Render page image at 150 DPI for OCR / Multimodal API
+            pix = page.get_pixmap(dpi=150)
+            img_bytes = pix.tobytes("jpeg")
+            page_images.append(img_bytes)
+            
+            print(f"[DEBUG LOG] Page {i+1}/{total_pages} processed. Text chars: {len(text)}, Image bytes: {len(img_bytes)}")
+            
+        doc.close()
         
-    return image_payloads
+        return {
+            "total_pages": total_pages,
+            "page_images": page_images,
+            "page_texts": page_texts,
+            "ocr_success": True
+        }
+    except Exception as e:
+        print(f"[DEBUG LOG ERROR] Failed to extract PDF pages: {e}")
+        return {
+            "total_pages": 0,
+            "page_images": [],
+            "page_texts": [],
+            "ocr_success": False,
+            "error": str(e)
+        }

@@ -712,22 +712,58 @@ def parse_legal_text_locally(text_content: str, filename: str = "") -> Dict[str,
     }
 
 
-def analyze_medical_document(text_content: str, file_bytes: Optional[bytes] = None, mime_type: Optional[str] = None, api_key: Optional[str] = None, filename: str = "") -> Dict[str, Any]:
+def analyze_medical_document(text_content: str, file_bytes: Optional[bytes] = None, mime_type: Optional[str] = None, api_key: Optional[str] = None, filename: str = "", file_path: Optional[str] = None) -> Dict[str, Any]:
+    from . import ocr
+    
+    total_pages = 1
+    ocr_success = True
+    page_images = []
+    
+    if file_path and os.path.exists(file_path):
+        ocr_result = ocr.extract_all_pages(file_path)
+        total_pages = ocr_result.get("total_pages", 1)
+        ocr_success = ocr_result.get("ocr_success", True)
+        page_images = ocr_result.get("page_images", [])
+        
+    print(f"[DEBUG LOG] ==========================================")
+    print(f"[DEBUG LOG] Starting Medical Document Analysis: {filename}")
+    print(f"[DEBUG LOG] Total pages processed: {total_pages}")
+    print(f"[DEBUG LOG] OCR success: {ocr_success}")
+    
     model = get_gemini_model(api_key)
     
     if not model:
-        print("Using Dynamic Local Medical Parser")
-        return parse_medical_text_locally(text_content, filename)
+        print("[DEBUG LOG] Gemini API key not present. Running local multi-page extraction engine.")
+        res = parse_medical_text_locally(text_content, filename)
+        extracted_count = len(res.get("tests", []))
+        print(f"[DEBUG LOG] Total extracted parameters: {extracted_count}")
+        print(f"[DEBUG LOG] ==========================================")
+        return res
     
     try:
-        prompt = "Analyze this medical document:\n" + text_content if text_content else "Analyze this uploaded medical report."
-        
+        prompt = (
+            "Analyze this complete pathology report carefully across ALL pages provided.\n"
+            "Extract EVERY SINGLE laboratory test parameter present. Do NOT omit any test. Do NOT limit output.\n"
+            "Group tests dynamically into categories: Hematology, Biochemistry, Lipid Profile, Kidney Function, Liver Function, Thyroid, Diabetes, Vitamins, Hormones, Others.\n"
+        )
+        if text_content:
+            prompt += f"\nExtracted Document Text:\n{text_content}\n"
+            
         contents = []
-        if file_bytes and mime_type:
+        
+        # Pass ALL page images rendered from PDF to Gemini
+        if page_images:
+            for img_b in page_images:
+                contents.append({
+                    "mime_type": "image/jpeg",
+                    "data": img_b
+                })
+        elif file_bytes and mime_type:
             contents.append({
                 "mime_type": mime_type,
                 "data": file_bytes
             })
+            
         contents.append(prompt)
         
         response = model.generate_content(
@@ -736,10 +772,30 @@ def analyze_medical_document(text_content: str, file_bytes: Optional[bytes] = No
             system_instruction=MEDICAL_SYSTEM_PROMPT
         )
         
-        return json.loads(response.text)
+        print(f"[DEBUG LOG] Raw AI JSON:\n{response.text[:1000]}...")
+        
+        res_json = json.loads(response.text)
+        extracted_tests = res_json.get("tests", [])
+        extracted_count = len(extracted_tests)
+        
+        print(f"[DEBUG LOG] Total extracted parameters: {extracted_count}")
+        print(f"[DEBUG LOG] ==========================================")
+        
+        if total_pages >= 3 and extracted_count < 10:
+            print(f"[DEBUG LOG WARNING] PDF has {total_pages} pages but only {extracted_count} tests extracted. Supplementing with local page parser.")
+            local_res = parse_medical_text_locally(text_content, filename)
+            if len(local_res.get("tests", [])) > extracted_count:
+                return local_res
+                
+        return res_json
+        
     except Exception as e:
-        print(f"Gemini medical analysis failed: {str(e)}. Falling back to dynamic local parser.")
-        return parse_medical_text_locally(text_content, filename)
+        print(f"[DEBUG LOG ERROR] Gemini medical analysis failed: {str(e)}. Falling back to local multi-page engine.")
+        res = parse_medical_text_locally(text_content, filename)
+        print(f"[DEBUG LOG] Total extracted parameters: {len(res.get('tests', []))}")
+        print(f"[DEBUG LOG] ==========================================")
+        return res
+
 
 
 def analyze_legal_document(text_content: str, file_bytes: Optional[bytes] = None, mime_type: Optional[str] = None, api_key: Optional[str] = None, filename: str = "") -> Dict[str, Any]:

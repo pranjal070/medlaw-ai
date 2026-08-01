@@ -130,8 +130,10 @@ async def upload_document(
             file_bytes=bytes_to_send,
             mime_type=m_type_to_send,
             api_key=api_key,
-            filename=file.filename
+            filename=file.filename,
+            file_path=temp_file_path
         )
+
     else:
         analysis_result = gemini.analyze_legal_document(
             text_content=text_content,
