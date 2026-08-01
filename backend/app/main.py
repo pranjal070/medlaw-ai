@@ -165,16 +165,26 @@ async def upload_document(
     # Step 4: Save Structured Entities (Tests or Clauses)
     if file_type == "medical":
         for t in analysis_result.get("tests", []):
+            res_val = str(t.get("result_val") if t.get("result_val") is not None else t.get("observed_value", ""))
+            ref_range = t.get("normal_range") or t.get("reference_range")
+            interp = t.get("interpretation") or t.get("explanation")
+            recom = t.get("recommendation")
+            
             db_test = models.MedicalTest(
                 document_id=db_doc.id,
-                test_name=t.get("test_name"),
-                result_val=str(t.get("result_val", "")),
+                category=t.get("category", "General Pathology"),
+                test_name=t.get("test_name", "Unknown Test"),
+                result_val=res_val,
                 unit=t.get("unit"),
-                normal_range=t.get("normal_range"),
+                normal_range=ref_range,
                 status=t.get("status", "Normal"),
-                explanation=t.get("explanation")
+                explanation=interp,
+                interpretation=interp,
+                recommendation=recom,
+                confidence=t.get("confidence", "high")
             )
             db.add(db_test)
+
     else:
         for c in analysis_result.get("clauses", []):
             db_clause = models.LegalClause(

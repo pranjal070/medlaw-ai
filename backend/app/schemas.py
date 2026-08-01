@@ -31,15 +31,20 @@ class TokenData(BaseModel):
 class MedicalTestResponse(BaseModel):
     id: int
     document_id: int
+    category: Optional[str] = "General Pathology"
     test_name: str
     result_val: str
     unit: Optional[str] = None
     normal_range: Optional[str] = None
     status: str
     explanation: Optional[str] = None
+    interpretation: Optional[str] = None
+    recommendation: Optional[str] = None
+    confidence: Optional[str] = "high"
 
     class Config:
         from_attributes = True
+
 
 
 # Legal Clause Schemas

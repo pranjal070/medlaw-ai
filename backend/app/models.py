@@ -50,14 +50,19 @@ class MedicalTest(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     document_id = Column(Integer, ForeignKey("documents.id"), nullable=False)
+    category = Column(String, default="General Pathology")
     test_name = Column(String, nullable=False)
     result_val = Column(String, nullable=False)  # e.g. "10.5" or "Positive"
     unit = Column(String, nullable=True)        # e.g. "g/dL"
     normal_range = Column(String, nullable=True) # e.g. "12-16"
-    status = Column(String, nullable=False)     # "Normal", "Low", "High", "Attention"
+    status = Column(String, nullable=False)     # "Normal", "Low", "High", "Borderline", "Critical", "Attention"
     explanation = Column(Text, nullable=True)
+    interpretation = Column(Text, nullable=True)
+    recommendation = Column(Text, nullable=True)
+    confidence = Column(String, default="high") # "high", "medium", "low"
 
     document = relationship("Document", back_populates="medical_tests")
+
 
 
 class LegalClause(Base):

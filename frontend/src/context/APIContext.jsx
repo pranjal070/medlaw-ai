@@ -432,7 +432,7 @@ const cleanJsonString = (str) => {
 };
 
 const callGeminiDirect = async (prompt, systemInstruction, geminiKey, fileBase64 = null, mimeType = null) => {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
   const parts = [];
   if (fileBase64 && mimeType) {
     parts.push({
@@ -450,40 +450,56 @@ const callGeminiDirect = async (prompt, systemInstruction, geminiKey, fileBase64
     systemInstruction: { parts: [{ text: systemInstruction }] }
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
+  let lastError = null;
+  for (const modelName of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Gemini API error: ${response.status} - ${errText}`);
+      if (response.ok) {
+        const resJson = await response.json();
+        const text = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return JSON.parse(cleanJsonString(text));
+      } else {
+        lastError = await response.text();
+      }
+    } catch (e) {
+      lastError = e.message;
+    }
   }
-
-  const resJson = await response.json();
-  const text = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Empty response from Gemini');
-  return JSON.parse(cleanJsonString(text));
+  throw new Error(`Gemini API call failed: ${lastError}`);
 };
 
 const callGeminiChatDirect = async (prompt, systemInstruction, geminiKey) => {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     systemInstruction: { parts: [{ text: systemInstruction }] }
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-
-  if (!response.ok) throw new Error('Gemini API request failed');
-  const resJson = await response.json();
-  return resJson.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
+  for (const modelName of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (response.ok) {
+        const resJson = await response.json();
+        return resJson.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
+      }
+    } catch (e) {
+      // Continue to next model candidate
+    }
+  }
+  return "Could not connect to Gemini API. Please check your API key.";
 };
+
 
 const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
