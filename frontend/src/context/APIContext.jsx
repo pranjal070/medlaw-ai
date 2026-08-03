@@ -280,8 +280,24 @@ const getDynamicMockMedical = (filename) => {
     };
   }
 
-  return MOCK_MEDICAL_RESPONSE;
+  if (name.includes('sanjeev') || name.includes('kumar')) {
+    return MOCK_MEDICAL_RESPONSE;
+  }
+
+  return {
+    summary: {
+      overall_health: `Document analysis completed for '${filename}'. Add your Gemini API key in Settings or connect to backend for AI multi-page extraction.`,
+      health_score: 80,
+      health_decision: "Routine Monitoring Recommended",
+      key_findings: [`Uploaded report '${filename}' parsed.`],
+      abnormal_parameters: [],
+      recommendations: ["Review results with your healthcare provider."],
+      attention_tests: []
+    },
+    tests: []
+  };
 };
+
 
 const getDynamicMockLegal = (filename) => {
   const name = filename.toLowerCase();
@@ -478,7 +494,7 @@ const cleanJsonString = (str) => {
 };
 
 const callGeminiDirect = async (prompt, systemInstruction, geminiKey, fileBase64 = null, mimeType = null) => {
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash-exp", "gemini-1.5-pro"];
   const parts = [];
   if (fileBase64 && mimeType) {
     parts.push({
@@ -521,7 +537,7 @@ const callGeminiDirect = async (prompt, systemInstruction, geminiKey, fileBase64
 };
 
 const callGeminiChatDirect = async (prompt, systemInstruction, geminiKey) => {
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash-exp", "gemini-1.5-pro"];
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     systemInstruction: { parts: [{ text: systemInstruction }] }
@@ -545,6 +561,7 @@ const callGeminiChatDirect = async (prompt, systemInstruction, geminiKey) => {
   }
   return "Could not connect to Gemini API. Please check your API key.";
 };
+
 
 
 const fileToBase64 = (file) => {
