@@ -529,69 +529,40 @@ def parse_medical_text_locally(text_content: str, filename: str = "") -> Dict[st
                     except Exception:
                         pass
 
-    # 3. Comprehensive 45-Test Extraction Panel for Scanned Image PDFs (when text extraction is empty in local mode)
-    if not extracted_tests:
-        default_scanned_tests = [
-            # Page 1: Diabetes & Glycemic Index
-            {"category": "Diabetes / Glycemic Index", "test_name": "HbA1c", "result_val": "5.00", "unit": "%", "normal_range": "4.0 - 5.6", "status": "Normal", "explanation": "Correct (In Normal Range). Optimal non-diabetic long-term glucose level.", "interpretation": "HbA1c of 5.0% is within the healthy reference range.", "recommendation": "Maintain balanced diet and active lifestyle.", "confidence": "high"},
-            {"category": "Diabetes / Glycemic Index", "test_name": "Mean Blood Glucose", "result_val": "96.80", "unit": "mg/dL", "normal_range": "70.0 - 100.0", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy average blood sugar level.", "interpretation": "Estimated average glucose is normal.", "recommendation": "Continue regular nutrition.", "confidence": "high"},
-            
-            # Page 2 & 3: Thyroid, Vitamins & Hormones
-            {"category": "Thyroid & Hormones", "test_name": "T4 (Thyroxine)", "result_val": "7.91", "unit": "µg/dL", "normal_range": "5.0 - 14.10", "status": "Normal", "explanation": "Correct (In Normal Range). Optimal thyroid hormone T4 output.", "interpretation": "T4 level is normal.", "recommendation": "Routine monitoring.", "confidence": "high"},
-            {"category": "Thyroid & Hormones", "test_name": "TSH (Thyroid Stimulating Hormone)", "result_val": "3.29", "unit": "µIU/mL", "normal_range": "0.30 - 5.50", "status": "Normal", "explanation": "Correct (In Normal Range). Well-balanced pituitary thyroid regulation.", "interpretation": "TSH is optimal.", "recommendation": "Annual health check.", "confidence": "high"},
-            {"category": "Thyroid & Hormones", "test_name": "T3 (Tri-iodothyronine)", "result_val": "1.54", "unit": "ng/mL", "normal_range": "0.7 - 2.04", "status": "Normal", "explanation": "Correct (In Normal Range). Normal active thyroid hormone level.", "interpretation": "T3 is within reference bounds.", "recommendation": "Routine monitoring.", "confidence": "high"},
-            {"category": "Vitamins & Nutrients", "test_name": "Vitamin B12 - Serum", "result_val": "559.00", "unit": "pg/mL", "normal_range": "200 - 835", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy Vitamin B12 levels for nerve function.", "interpretation": "B12 levels support healthy red cell formation.", "recommendation": "Maintain B12 rich diet.", "confidence": "high"},
-            {"category": "Vitamins & Nutrients", "test_name": "VITAMIN D TOTAL (25-OH) SERUM", "result_val": "22.00", "unit": "ng/mL", "normal_range": "30.0 - 100.0", "status": "Low", "explanation": "Out of Range (Low). Insufficient Vitamin D (<30 ng/mL). Daily morning sun exposure and D3 supplements recommended under medical supervision.", "interpretation": "Vitamin D is deficient (<30 ng/mL).", "recommendation": "15-20 mins daily morning sun & D3 supplementation.", "confidence": "high"},
+    # 3. Dynamic OCR Page Text Matcher for Scanned/Multi-Page PDFs (when text_content is short or empty)
+    if not extracted_tests and file_path and os.path.exists(file_path):
+        try:
+            from . import ocr
+            ocr_res = ocr.extract_all_pages(file_path)
+            ocr_texts = ocr_res.get("page_texts", [])
+            combined_ocr_text = "\n".join(ocr_texts)
+            if combined_ocr_text.strip():
+                lines = combined_ocr_text.splitlines()
+                skip_words = re.compile(r"^(and|the|for|with|from|this|that|page|date|name|test|result|ref|range|value|normal|patient|report|doctor|hospital|lab|age|sex|male|female|gender|sample|type|time|total|unit|method)", re.I)
+                for line in lines:
+                    line_str = line.strip()
+                    if not line_str or len(line_str) < 5:
+                        continue
+                    m = re.search(r"([A-Za-z0-9\s\-/()]{3,40})\s*[:\t|]?\s*([\d.]+)\s*([a-zA-Z/%/µL\^\d]*)", line_str)
+                    if m:
+                        tname = m.group(1).strip()
+                        tval = m.group(2)
+                        tunit = m.group(3) or ""
+                        if len(tname) >= 3 and not skip_words.search(tname) and tname.lower() not in [n.lower() for n in found_names]:
+                            found_names.add(tname.lower())
+                            cat = "CBC / Hematology" if any(w in tname.lower() for w in ['hb', 'wbc', 'rbc', 'platelet', 'mcv', 'mch', 'rdw', 'neutrophil', 'lymphocyte']) else "Biochemistry"
+                            extracted_tests.append({
+                                "category": cat,
+                                "test_name": tname.title(),
+                                "result_val": tval,
+                                "unit": tunit,
+                                "normal_range": "Refer to report",
+                                "status": "Normal",
+                                "explanation": f"{tname.title()} measured at {tval} {tunit} (Extracted via OCR from file)."
+                            })
+        except Exception as ocr_err:
+            print(f"[DEBUG LOG] Dynamic OCR fallback failed: {ocr_err}")
 
-            # Page 4 & 5: Complete Blood Count (CBC)
-            {"category": "CBC / Hematology", "test_name": "Haemoglobin", "result_val": "14.20", "unit": "g/dL", "normal_range": "13.0 - 18.0", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy oxygen-carrying capacity.", "interpretation": "Normal hemoglobin.", "recommendation": "Balanced nutrition.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Total Leucocyte Count (WBC)", "result_val": "4.70", "unit": "x 10^3/µL", "normal_range": "4.0 - 11.0", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy white blood cell baseline defense.", "interpretation": "WBC is optimal.", "recommendation": "Maintain healthy immunity.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Total Erythrocyte Count (RBC)", "result_val": "4.59", "unit": "x 10^6/µL", "normal_range": "3.5 - 5.5", "status": "Normal", "explanation": "Correct (In Normal Range). Red blood cell count is within normal limits.", "interpretation": "RBC is normal.", "recommendation": "Routine monitoring.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Platelet Count", "result_val": "189.00", "unit": "x 10^3/µL", "normal_range": "150 - 450", "status": "Normal", "explanation": "Correct (In Normal Range). Platelet count supports proper blood coagulation.", "interpretation": "Platelets are normal.", "recommendation": "Routine checkup.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "MPV (Mean Platelet Volume)", "result_val": "12.90", "unit": "fL", "normal_range": "7.8 - 11.0", "status": "High", "explanation": "Out of Range (High). Elevated mean platelet volume.", "interpretation": "MPV is slightly elevated.", "recommendation": "Follow-up CBC.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "PCT (Plateletcrit)", "result_val": "0.24", "unit": "%", "normal_range": "0.15 - 0.62", "status": "Normal", "explanation": "Correct (In Normal Range). Platelet volume percentage is normal.", "interpretation": "PCT is normal.", "recommendation": "Routine baseline.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "PDW (Platelet Distribution Width)", "result_val": "30.90", "unit": "%", "normal_range": "8.3 - 25.0", "status": "High", "explanation": "Out of Range (High). Increased platelet size variation.", "interpretation": "PDW is elevated.", "recommendation": "Routine follow-up.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "HCT (Hematocrit / P.C.V.)", "result_val": "41.50", "unit": "%", "normal_range": "40.0 - 52.0", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy red cell volume percentage.", "interpretation": "HCT is normal.", "recommendation": "Adequate hydration.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "M.C.V. (Mean Corpuscular Volume)", "result_val": "90.30", "unit": "fL", "normal_range": "82.0 - 95.0", "status": "Normal", "explanation": "Correct (In Normal Range). Normal average red cell size.", "interpretation": "MCV is optimal.", "recommendation": "Balanced diet.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "M.C.H.", "result_val": "30.90", "unit": "pg", "normal_range": "25.0 - 33.0", "status": "Normal", "explanation": "Correct (In Normal Range). Average hemoglobin per red cell is normal.", "interpretation": "MCH is normal.", "recommendation": "Routine maintenance.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "M.C.H.C.", "result_val": "34.20", "unit": "gm/dL", "normal_range": "33.0 - 37.0", "status": "Normal", "explanation": "Correct (In Normal Range). Normal hemoglobin concentration.", "interpretation": "MCHC is normal.", "recommendation": "Routine wellness.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "R.D.W. CV", "result_val": "14.50", "unit": "%", "normal_range": "11.0 - 16.0", "status": "Normal", "explanation": "Correct (In Normal Range). Normal red cell size variation.", "interpretation": "RDW is normal.", "recommendation": "Routine baseline.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Neutrophils", "result_val": "60.30", "unit": "%", "normal_range": "40.0 - 70.0", "status": "Normal", "explanation": "Correct (In Normal Range). Normal neutrophil differential percentage.", "interpretation": "Neutrophils normal.", "recommendation": "Healthy baseline.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Lymphocytes", "result_val": "30.50", "unit": "%", "normal_range": "20.0 - 45.0", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy immune lymphocyte proportion.", "interpretation": "Lymphocytes normal.", "recommendation": "Healthy immune baseline.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Eosinophils", "result_val": "0.90", "unit": "%", "normal_range": "0.0 - 6.0", "status": "Normal", "explanation": "Correct (In Normal Range). Eosinophils within healthy baseline.", "interpretation": "Eosinophils normal.", "recommendation": "Routine check.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Monocytes", "result_val": "8.10", "unit": "%", "normal_range": "0.0 - 8.0", "status": "High", "explanation": "Out of Range (Slightly High). Monocyte percentage at upper border.", "interpretation": "Monocytes slightly elevated.", "recommendation": "Routine monitoring.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Basophils", "result_val": "0.20", "unit": "%", "normal_range": "0.0 - 1.0", "status": "Normal", "explanation": "Correct (In Normal Range). Normal basophil count.", "interpretation": "Basophils normal.", "recommendation": "Healthy baseline.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Absolute Neutrophil Count", "result_val": "2.79", "unit": "x 10^3/µL", "normal_range": "1.5 - 8.0", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy absolute neutrophil count.", "interpretation": "ANC normal.", "recommendation": "Routine baseline.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Absolute Lymphocyte Count", "result_val": "1.42", "unit": "x 10^3/µL", "normal_range": "1.02 - 3.55", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy absolute lymphocyte count.", "interpretation": "ALC normal.", "recommendation": "Routine baseline.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Absolute Eosinophil Count", "result_val": "0.04", "unit": "x 10^3/µL", "normal_range": "0.04 - 0.44", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy absolute eosinophil count.", "interpretation": "AEC normal.", "recommendation": "Routine baseline.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Absolute Monocyte Count", "result_val": "0.38", "unit": "x 10^3/µL", "normal_range": "0.26 - 1.07", "status": "Normal", "explanation": "Correct (In Normal Range). Normal absolute monocyte count.", "interpretation": "AMC normal.", "recommendation": "Routine baseline.", "confidence": "high"},
-            {"category": "CBC / Hematology", "test_name": "Absolute Basophil Count", "result_val": "0.01", "unit": "x 10^3/µL", "normal_range": "0.02 - 0.1", "status": "Normal", "explanation": "Correct (In Normal Range). Basophil count is normal.", "interpretation": "ABC normal.", "recommendation": "Routine baseline.", "confidence": "high"},
-
-            # Page 7: Biochemistry (Kidney & Liver Enzymes)
-            {"category": "Kidney Function & Renal", "test_name": "Urea - Serum", "result_val": "23.30", "unit": "mg/dL", "normal_range": "10.00 - 50.0", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy blood urea clearance.", "interpretation": "Renal urea normal.", "recommendation": "Maintain daily fluid intake.", "confidence": "high"},
-            {"category": "Kidney Function & Renal", "test_name": "Creatinine - Serum", "result_val": "1.09", "unit": "mg/dL", "normal_range": "0.72 - 1.25", "status": "Normal", "explanation": "Correct (In Normal Range). Normal kidney filtration performance.", "interpretation": "Creatinine normal.", "recommendation": "Maintain optimal hydration.", "confidence": "high"},
-            {"category": "Kidney Function & Renal", "test_name": "Uric Acid - Serum", "result_val": "4.75", "unit": "mg/dL", "normal_range": "3.5 - 7.2", "status": "Normal", "explanation": "Correct (In Normal Range). Normal uric acid levels.", "interpretation": "Uric acid is normal.", "recommendation": "Maintain hydration.", "confidence": "high"},
-            {"category": "Liver Function Panel", "test_name": "Alanine Transaminase (SGPT/ALT)", "result_val": "30.10", "unit": "U/L", "normal_range": "0 - 55", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy liver cellular enzyme levels.", "interpretation": "SGPT is optimal.", "recommendation": "Healthy lifestyle.", "confidence": "high"},
-            {"category": "Liver Function Panel", "test_name": "Aspartate Transaminase (SGOT/AST)", "result_val": "28.10", "unit": "U/L", "normal_range": "0 - 46", "status": "Normal", "explanation": "Correct (In Normal Range). Normal liver and tissue enzymes.", "interpretation": "SGOT is optimal.", "recommendation": "Healthy lifestyle.", "confidence": "high"},
-            {"category": "Liver Function Panel", "test_name": "Alkaline Phosphatase - Serum", "result_val": "57.70", "unit": "U/L", "normal_range": "< 150.0", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy bone and liver enzyme levels.", "interpretation": "ALP is normal.", "recommendation": "Routine monitoring.", "confidence": "high"},
-
-            # Page 8: Lipid Profile & Inflammatory Markers
-            {"category": "Lipid Profile", "test_name": "Total Cholesterol - Serum", "result_val": "284.00", "unit": "mg/dL", "normal_range": "< 200.0", "status": "High", "explanation": "Out of Range (High). Elevated total cholesterol (>240 is high risk).", "interpretation": "Total cholesterol is elevated (>240 mg/dL).", "recommendation": "Low-saturated-fat diet, soluble fiber, oats, olive oil, and 30-min exercise.", "confidence": "high"},
-            {"category": "Lipid Profile", "test_name": "Triglyceride - Serum", "result_val": "192.00", "unit": "mg/dL", "normal_range": "< 150.0", "status": "High", "explanation": "Out of Range (High). Borderline high triglycerides.", "interpretation": "Triglycerides are elevated (192 mg/dL).", "recommendation": "Reduce refined carbs, sugars, soda, and sweet pastries.", "confidence": "high"},
-            {"category": "Lipid Profile", "test_name": "HDL Cholesterol - Serum", "result_val": "41.90", "unit": "mg/dL", "normal_range": ">= 40.0", "status": "Normal", "explanation": "Correct (In Normal Range). Good HDL cholesterol above limit.", "interpretation": "HDL is protective (>40 mg/dL).", "recommendation": "Aerobic exercise to boost HDL.", "confidence": "high"},
-            {"category": "Lipid Profile", "test_name": "LDL Cholesterol - Serum", "result_val": "203.70", "unit": "mg/dL", "normal_range": "< 100.0", "status": "High", "explanation": "Out of Range (High). Very high LDL bad cholesterol.", "interpretation": "LDL is very high (>190 mg/dL).", "recommendation": "Low-saturated fat diet, omega-3, physician consultation.", "confidence": "high"},
-            {"category": "Lipid Profile", "test_name": "VLDL Cholesterol - Serum", "result_val": "38.40", "unit": "mg/dL", "normal_range": "6.0 - 38.0", "status": "High", "explanation": "Out of Range (Slightly High). Slightly elevated VLDL.", "interpretation": "VLDL slightly elevated.", "recommendation": "Low carbohydrate diet.", "confidence": "high"},
-            {"category": "Inflammatory Markers", "test_name": "CRP (C-Reactive Protein)", "result_val": "5.86", "unit": "mg/L", "normal_range": "0.0 - 5.0", "status": "High", "explanation": "Out of Range (High). Elevated C-reactive protein.", "interpretation": "CRP indicates mild acute inflammation.", "recommendation": "Anti-inflammatory diet and doctor follow-up.", "confidence": "high"},
-
-            # Page 9: Liver Bilirubin & Total Protein
-            {"category": "Liver Function Panel", "test_name": "Total Bilirubin - Serum", "result_val": "0.44", "unit": "mg/dL", "normal_range": "0.0 - 1.20", "status": "Normal", "explanation": "Correct (In Normal Range). Normal total bilirubin.", "interpretation": "Total bilirubin normal.", "recommendation": "Routine monitoring.", "confidence": "high"},
-            {"category": "Liver Function Panel", "test_name": "Direct Bilirubin - Serum", "result_val": "0.11", "unit": "mg/dL", "normal_range": "0.0 - 0.40", "status": "Normal", "explanation": "Correct (In Normal Range). Normal conjugated bilirubin.", "interpretation": "Direct bilirubin normal.", "recommendation": "Routine monitoring.", "confidence": "high"},
-            {"category": "Liver Function Panel", "test_name": "Indirect Bilirubin - Serum", "result_val": "0.33", "unit": "mg/dL", "normal_range": "0.0 - 1.00", "status": "Normal", "explanation": "Correct (In Normal Range). Normal unconjugated bilirubin.", "interpretation": "Indirect bilirubin normal.", "recommendation": "Routine monitoring.", "confidence": "high"},
-            {"category": "Biochemistry", "test_name": "Total Protein - Serum", "result_val": "7.52", "unit": "g/dL", "normal_range": "6.2 - 8.0", "status": "Normal", "explanation": "Correct (In Normal Range). Healthy total serum protein.", "interpretation": "Total protein normal.", "recommendation": "Maintain protein intake.", "confidence": "high"}
-        ]
-        extracted_tests.extend(default_scanned_tests)
-        for t in default_scanned_tests:
-            found_names.add(t["test_name"])
 
 
 
