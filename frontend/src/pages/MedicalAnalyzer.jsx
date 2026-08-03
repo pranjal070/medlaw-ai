@@ -318,32 +318,74 @@ export default function MedicalAnalyzer() {
       </div>
 
       {/* DOCUMENT HEADER */}
-      <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-            <Activity className="w-4 h-4 text-primary-500" />
-            <span>Pathology Report Analysis</span>
+      <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+              <Activity className="w-4 h-4 text-primary-500" />
+              <span>Pathology Report Analysis</span>
+            </div>
+            <h1 className="text-xl font-extrabold text-slate-850 mt-1">{document.filename}</h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Total Laboratory Parameters Extracted: <span className="font-extrabold text-slate-800">{tests.length} tests</span> across all document pages.
+            </p>
           </div>
-          <h1 className="text-xl font-extrabold text-slate-850 mt-1">{document.filename}</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Total Laboratory Parameters Extracted: <span className="font-extrabold text-slate-800">{tests.length} tests</span> across all document pages.
-          </p>
+
+          <div className="flex gap-3 text-xs font-bold text-slate-650">
+            <div className="px-3 py-2 bg-slate-50 rounded-xl border border-slate-100 text-center">
+              <p className="text-lg font-extrabold text-emerald-600">{normalTests.length}</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wide">Normal</p>
+            </div>
+            <div className="px-3 py-2 bg-slate-50 rounded-xl border border-slate-100 text-center">
+              <p className="text-lg font-extrabold text-red-500">{highTests.length}</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wide">High</p>
+            </div>
+            <div className="px-3 py-2 bg-slate-50 rounded-xl border border-slate-100 text-center">
+              <p className="text-lg font-extrabold text-blue-600">{lowTests.length}</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wide">Low</p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex gap-3 text-xs font-bold text-slate-650">
-          <div className="px-3 py-2 bg-slate-50 rounded-xl border border-slate-100 text-center">
-            <p className="text-lg font-extrabold text-emerald-600">{normalTests.length}</p>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Normal</p>
+        {/* Patient Identity Bar */}
+        {(summary.patient_name && summary.patient_name !== 'Not Specified') && (
+          <div className="bg-gradient-to-r from-primary-50/60 to-blue-50/40 border border-primary-100/50 rounded-xl p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div>
+              <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Patient Name</p>
+              <p className="text-xs font-extrabold text-slate-800 mt-0.5">{summary.patient_name}</p>
+            </div>
+            {summary.patient_age && summary.patient_age !== 'Not Specified' && (
+              <div>
+                <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Age</p>
+                <p className="text-xs font-bold text-slate-700 mt-0.5">{summary.patient_age} years</p>
+              </div>
+            )}
+            {summary.patient_gender && summary.patient_gender !== 'Not Specified' && (
+              <div>
+                <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Gender</p>
+                <p className="text-xs font-bold text-slate-700 mt-0.5">{summary.patient_gender}</p>
+              </div>
+            )}
+            {summary.referring_doctor && summary.referring_doctor !== 'Not Specified' && (
+              <div>
+                <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Referred By</p>
+                <p className="text-xs font-bold text-slate-700 mt-0.5">Dr. {summary.referring_doctor}</p>
+              </div>
+            )}
+            {summary.lab_name && summary.lab_name !== 'Not Specified' && (
+              <div>
+                <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Laboratory</p>
+                <p className="text-xs font-bold text-slate-700 mt-0.5">{summary.lab_name}</p>
+              </div>
+            )}
+            {summary.report_date && summary.report_date !== 'Not Specified' && (
+              <div>
+                <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Report Date</p>
+                <p className="text-xs font-bold text-slate-700 mt-0.5">{summary.report_date}</p>
+              </div>
+            )}
           </div>
-          <div className="px-3 py-2 bg-slate-50 rounded-xl border border-slate-100 text-center">
-            <p className="text-lg font-extrabold text-red-500">{highTests.length}</p>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wide">High</p>
-          </div>
-          <div className="px-3 py-2 bg-slate-50 rounded-xl border border-slate-100 text-center">
-            <p className="text-lg font-extrabold text-blue-600">{lowTests.length}</p>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Low</p>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* DASHBOARD CHARTS & HEALTH SCORE */}

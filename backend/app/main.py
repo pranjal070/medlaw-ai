@@ -115,6 +115,17 @@ async def upload_document(
     except Exception as e:
         print(f"Local parser failed: {str(e)}")
         
+    # Step 1b: Run OCR to extract ALL page images + page texts for multi-page analysis
+    ocr_page_texts = []
+    if file_ext.lower() == ".pdf":
+        try:
+            from . import ocr
+            ocr_result = ocr.extract_all_pages(local_path)
+            ocr_page_texts = ocr_result.get("page_texts", [])
+            print(f"[DEBUG LOG] OCR extracted {len(ocr_page_texts)} pages of text")
+        except Exception as e:
+            print(f"[DEBUG LOG] OCR extraction failed: {e}")
+
     # Step 2: Perform AI Analysis using Gemini
     analysis_result = {}
     # Always provide original binary bytes for PDFs & images so Gemini can perform native multimodal document analysis
@@ -131,7 +142,7 @@ async def upload_document(
             mime_type=m_type_to_send,
             api_key=api_key,
             filename=file.filename,
-            file_path=temp_file_path
+            file_path=local_path
         )
 
     else:
@@ -140,17 +151,33 @@ async def upload_document(
             file_bytes=bytes_to_send,
             mime_type=m_type_to_send,
             api_key=api_key,
-            filename=file.filename
+            filename=file.filename,
+            file_path=local_path
         )
 
 
+    # Build comprehensive RAG text from ALL sources: parser text + OCR page texts + analysis summary
+    full_rag_text = text_content or ""
+    
+    # Append OCR-extracted page texts (covers ALL pages, including scanned images)
+    if ocr_page_texts:
+        ocr_combined = "\n\n--- PAGE BREAK ---\n\n".join(
+            [f"[Page {i+1}]\n{pt}" for i, pt in enumerate(ocr_page_texts) if pt.strip()]
+        )
+        if ocr_combined and ocr_combined not in full_rag_text:
+            full_rag_text = full_rag_text + "\n\n" + ocr_combined if full_rag_text else ocr_combined
+    
     # If the text content was empty (scanned image) but Gemini returned results, 
     # we can synthesize a readable text content from the summary
-    if not text_content:
+    if not full_rag_text:
         if file_type == "medical":
-            text_content = f"Medical Report Summary:\n{analysis_result.get('summary', {}).get('overall_health', '')}"
+            full_rag_text = f"Medical Report Summary:\n{analysis_result.get('summary', {}).get('overall_health', '')}"
         else:
-            text_content = f"Legal Document Summary:\n{analysis_result.get('summary', {}).get('purpose', '')}"
+            full_rag_text = f"Legal Document Summary:\n{analysis_result.get('summary', {}).get('purpose', '')}"
+    
+    # Use full_rag_text as the stored text_content so chat can access all pages
+    text_content = full_rag_text
+    print(f"[DEBUG LOG] Full RAG text length: {len(text_content)} chars")
 
     # Step 3: Save Document in database
     db_doc = models.Document(
@@ -201,8 +228,9 @@ async def upload_document(
             
     db.commit()
     
-    # Step 5: Index Document Chunks and Embeddings for RAG
+    # Step 5: Index Document Chunks and Embeddings for RAG (using FULL text from ALL pages)
     chunks = gemini.chunk_text(text_content)
+    print(f"[DEBUG LOG] RAG: Indexing {len(chunks)} chunks for document {file.filename}")
     for idx, chunk in enumerate(chunks):
         emb = gemini.get_embedding(chunk, api_key=api_key)
         db_chunk = models.DocumentChunk(

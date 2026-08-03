@@ -22,7 +22,7 @@ def run_tests():
     else:
         print(f"  [FAIL] Registration failed: {reg_res.status_code} - {reg_res.text}")
         return
-
+        
     # 2. Login User
     print("\n2. Testing User Login...")
     login_payload = {"email": TEST_EMAIL, "password": TEST_PASSWORD}

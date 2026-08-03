@@ -13,63 +13,95 @@ export const useAPI = () => useContext(APIContext);
 // --- Client-Side Mocks ---
 const MOCK_MEDICAL_RESPONSE = {
   summary: {
-    overall_health: "The patient shows a generally stable health profile, but exhibits significant deficiencies in essential nutrients and mild anemia indicators. Most metabolic parameters are normal.",
+    overall_health: "Comprehensive 9-page pathology report analysis. The patient shows optimal glycemic control, normal thyroid function, and healthy renal clearance. Elevated parameters detected in Total Cholesterol (284 mg/dL), LDL (203.7 mg/dL), Triglycerides (192 mg/dL), and CRP (5.86 mg/L). Deficient Vitamin D (22 ng/mL).",
+    health_score: 72,
+    health_decision: "Attention Required - Follow-Up Suggested",
     key_findings: [
-      "Hemoglobin levels are slightly below the healthy reference range.",
-      "Vitamin D level is severely deficient.",
-      "Total Cholesterol is slightly elevated above the optimal threshold."
+      "Total Cholesterol is elevated at 284 mg/dL (Ref: < 200 mg/dL).",
+      "LDL Bad Cholesterol is elevated at 203.7 mg/dL (Ref: < 100 mg/dL).",
+      "Vitamin D is insufficient at 22 ng/mL (Ref: 30-100 ng/mL).",
+      "CRP Inflammatory Marker is slightly elevated at 5.86 mg/L (Ref: < 5 mg/L)."
     ],
-    abnormal_parameters: ["Hemoglobin", "Vitamin D", "Total Cholesterol"],
+    abnormal_parameters: ["Total Cholesterol", "LDL Cholesterol", "Triglycerides", "Vitamin D", "CRP"],
+    precautions: [
+      "Schedule a follow-up consultation with your physician regarding lipid profile.",
+      "Get 15-20 minutes of daily morning sun exposure for Vitamin D."
+    ],
+    what_to_eat: [
+      "Oats, soluble fiber, walnuts, almonds, and extra virgin olive oil.",
+      "Vitamin D3 fortified foods, eggs, and salmon."
+    ],
+    what_to_stop: [
+      "Avoid trans fats, deep-fried foods, and refined sugars."
+    ],
     recommendations: [
-      "Consider Vitamin D supplementation after consulting a physician.",
-      "Increase intake of iron-rich foods (e.g., spinach, red meat, lentils).",
-      "Incorporate light aerobic exercise and monitor dietary fat intake."
+      "Incorporate daily 30-minute cardiovascular exercise.",
+      "Re-evaluate lipid panel and Vitamin D in 8-12 weeks."
     ],
-    attention_tests: ["Vitamin D (Severely Low)"]
+    attention_tests: ["Total Cholesterol (High)", "LDL Cholesterol (High)", "Vitamin D (Low)"]
   },
   tests: [
-    {
-      test_name: "Hemoglobin",
-      result_val: "10.5",
-      unit: "g/dL",
-      normal_range: "12.0 - 16.0",
-      status: "Low",
-      explanation: "Slightly low hemoglobin indicates mild anemia. It can cause mild fatigue and is addressable by adjusting dietary iron."
-    },
-    {
-      test_name: "Vitamin D",
-      result_val: "15.0",
-      unit: "ng/mL",
-      normal_range: "30.0 - 100.0",
-      status: "Low",
-      explanation: "Severe Vitamin D deficiency can impact bone density and immune function. Daily sun exposure or supplementation is usually advised."
-    },
-    {
-      test_name: "Total Cholesterol",
-      result_val: "235.0",
-      unit: "mg/dL",
-      normal_range: "< 200.0",
-      status: "High",
-      explanation: "Elevated cholesterol levels can increase cardiovascular risk over time. Minimizing saturated fats and increasing soluble fiber can help."
-    },
-    {
-      test_name: "Thyroid Stimulating Hormone (TSH)",
-      result_val: "2.4",
-      unit: "uIU/mL",
-      normal_range: "0.4 - 4.5",
-      status: "Normal",
-      explanation: "TSH levels are within the optimal range, suggesting that thyroid function is currently well-balanced."
-    },
-    {
-      test_name: "Blood Glucose (Fasting)",
-      result_val: "92.0",
-      unit: "mg/dL",
-      normal_range: "70.0 - 100.0",
-      status: "Normal",
-      explanation: "Fasting blood sugar is normal, indicating healthy insulin management and glucose regulation."
-    }
+    // Page 1: Diabetes & Glycemic Index
+    { category: "Diabetes / Glycemic Index", test_name: "HbA1c", result_val: "5.00", unit: "%", normal_range: "4.0 - 5.6", status: "Normal", explanation: "Correct (In Normal Range). Optimal non-diabetic long-term glucose level.", interpretation: "HbA1c of 5.0% is within the healthy reference range.", recommendation: "Maintain balanced diet and active lifestyle.", confidence: "high" },
+    { category: "Diabetes / Glycemic Index", test_name: "Mean Blood Glucose", result_val: "96.80", unit: "mg/dL", normal_range: "70.0 - 100.0", status: "Normal", explanation: "Correct (In Normal Range). Healthy average blood sugar level.", interpretation: "Estimated average glucose is normal.", recommendation: "Continue regular nutrition.", confidence: "high" },
+
+    // Page 2 & 3: Thyroid & Hormones / Vitamins
+    { category: "Thyroid & Hormones", test_name: "T4 (Thyroxine)", result_val: "7.91", unit: "µg/dL", normal_range: "5.0 - 14.10", status: "Normal", explanation: "Correct (In Normal Range). Optimal thyroid hormone T4 output.", interpretation: "T4 level is normal.", recommendation: "Routine monitoring.", confidence: "high" },
+    { category: "Thyroid & Hormones", test_name: "TSH (Thyroid Stimulating Hormone)", result_val: "3.29", unit: "µIU/mL", normal_range: "0.30 - 5.50", status: "Normal", explanation: "Correct (In Normal Range). Well-balanced pituitary thyroid regulation.", interpretation: "TSH is optimal.", recommendation: "Annual health check.", confidence: "high" },
+    { category: "Thyroid & Hormones", test_name: "T3 (Tri-iodothyronine)", result_val: "1.54", unit: "ng/mL", normal_range: "0.7 - 2.04", status: "Normal", explanation: "Correct (In Normal Range). Normal active thyroid hormone level.", interpretation: "T3 is within reference bounds.", recommendation: "Routine monitoring.", confidence: "high" },
+    { category: "Vitamins & Nutrients", test_name: "Vitamin B12 - Serum", result_val: "559.00", unit: "pg/mL", normal_range: "200 - 835", status: "Normal", explanation: "Correct (In Normal Range). Healthy Vitamin B12 levels for nerve function.", interpretation: "B12 levels support healthy red cell formation.", recommendation: "Maintain B12 rich diet.", confidence: "high" },
+    { category: "Vitamins & Nutrients", test_name: "VITAMIN D TOTAL (25-OH) SERUM", result_val: "22.00", unit: "ng/mL", normal_range: "30.0 - 100.0", status: "Low", explanation: "Out of Range (Low). Insufficient Vitamin D (<30 ng/mL). Daily morning sun exposure and D3 supplements recommended under medical supervision.", interpretation: "Vitamin D is deficient (<30 ng/mL).", recommendation: "15-20 mins daily morning sun & D3 supplementation.", confidence: "high" },
+
+    // Page 4 & 5: Complete Blood Count (CBC)
+    { category: "CBC / Hematology", test_name: "Haemoglobin", result_val: "14.20", unit: "g/dL", normal_range: "13.0 - 18.0", status: "Normal", explanation: "Correct (In Normal Range). Healthy oxygen-carrying capacity.", interpretation: "Normal hemoglobin.", recommendation: "Balanced nutrition.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Total Leucocyte Count (WBC)", result_val: "4.70", unit: "x 10^3/µL", normal_range: "4.0 - 11.0", status: "Normal", explanation: "Correct (In Normal Range). Healthy white blood cell baseline defense.", interpretation: "WBC is optimal.", recommendation: "Maintain healthy immunity.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Total Erythrocyte Count (RBC)", result_val: "4.59", unit: "x 10^6/µL", normal_range: "3.5 - 5.5", status: "Normal", explanation: "Correct (In Normal Range). Red blood cell count is within normal limits.", interpretation: "RBC is normal.", recommendation: "Routine monitoring.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Platelet Count", result_val: "189.00", unit: "x 10^3/µL", normal_range: "150 - 450", status: "Normal", explanation: "Correct (In Normal Range). Platelet count supports proper blood coagulation.", interpretation: "Platelets are normal.", recommendation: "Routine checkup.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "MPV (Mean Platelet Volume)", result_val: "12.90", unit: "fL", normal_range: "7.8 - 11.0", status: "High", explanation: "Out of Range (High). Elevated mean platelet volume.", interpretation: "MPV is slightly elevated.", recommendation: "Follow-up CBC.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "PCT (Plateletcrit)", result_val: "0.24", unit: "%", normal_range: "0.15 - 0.62", status: "Normal", explanation: "Correct (In Normal Range). Platelet volume percentage is normal.", interpretation: "PCT is normal.", recommendation: "Routine baseline.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "PDW (Platelet Distribution Width)", result_val: "30.90", unit: "%", normal_range: "8.3 - 25.0", status: "High", explanation: "Out of Range (High). Increased platelet size variation.", interpretation: "PDW is elevated.", recommendation: "Routine follow-up.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "HCT (Hematocrit / P.C.V.)", result_val: "41.50", unit: "%", normal_range: "40.0 - 52.0", status: "Normal", explanation: "Correct (In Normal Range). Healthy red cell volume percentage.", interpretation: "HCT is normal.", recommendation: "Adequate hydration.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "M.C.V. (Mean Corpuscular Volume)", result_val: "90.30", unit: "fL", normal_range: "82.0 - 95.0", status: "Normal", explanation: "Correct (In Normal Range). Normal average red cell size.", interpretation: "MCV is optimal.", recommendation: "Balanced diet.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "M.C.H.", result_val: "30.90", unit: "pg", normal_range: "25.0 - 33.0", status: "Normal", explanation: "Correct (In Normal Range). Average hemoglobin per red cell is normal.", interpretation: "MCH is normal.", recommendation: "Routine maintenance.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "M.C.H.C.", result_val: "34.20", unit: "gm/dL", normal_range: "33.0 - 37.0", status: "Normal", explanation: "Correct (In Normal Range). Normal hemoglobin concentration.", interpretation: "MCHC is normal.", recommendation: "Routine wellness.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "R.D.W. CV", result_val: "14.50", unit: "%", normal_range: "11.0 - 16.0", status: "Normal", explanation: "Correct (In Normal Range). Normal red cell size variation.", interpretation: "RDW is normal.", recommendation: "Routine baseline.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Neutrophils", result_val: "60.30", unit: "%", normal_range: "40.0 - 70.0", status: "Normal", explanation: "Correct (In Normal Range). Normal neutrophil differential percentage.", interpretation: "Neutrophils normal.", recommendation: "Healthy baseline.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Lymphocytes", result_val: "30.50", unit: "%", normal_range: "20.0 - 45.0", status: "Normal", explanation: "Correct (In Normal Range). Healthy immune lymphocyte proportion.", interpretation: "Lymphocytes normal.", recommendation: "Healthy immune baseline.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Eosinophils", result_val: "0.90", unit: "%", normal_range: "0.0 - 6.0", status: "Normal", explanation: "Correct (In Normal Range). Eosinophils within healthy baseline.", interpretation: "Eosinophils normal.", recommendation: "Routine check.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Monocytes", result_val: "8.10", unit: "%", normal_range: "0.0 - 8.0", status: "High", explanation: "Out of Range (Slightly High). Monocyte percentage at upper border.", interpretation: "Monocytes slightly elevated.", recommendation: "Routine monitoring.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Basophils", result_val: "0.20", unit: "%", normal_range: "0.0 - 1.0", status: "Normal", explanation: "Correct (In Normal Range). Normal basophil count.", interpretation: "Basophils normal.", recommendation: "Healthy baseline.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Absolute Neutrophil Count", result_val: "2.79", unit: "x 10^3/µL", normal_range: "1.5 - 8.0", status: "Normal", explanation: "Correct (In Normal Range). Healthy absolute neutrophil count.", interpretation: "ANC normal.", recommendation: "Routine baseline.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Absolute Lymphocyte Count", result_val: "1.42", unit: "x 10^3/µL", normal_range: "1.02 - 3.55", status: "Normal", explanation: "Correct (In Normal Range). Healthy absolute lymphocyte count.", interpretation: "ALC normal.", recommendation: "Routine baseline.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Absolute Eosinophil Count", result_val: "0.04", unit: "x 10^3/µL", normal_range: "0.04 - 0.44", status: "Normal", explanation: "Correct (In Normal Range). Healthy absolute eosinophil count.", interpretation: "AEC normal.", recommendation: "Routine baseline.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Absolute Monocyte Count", result_val: "0.38", unit: "x 10^3/µL", normal_range: "0.26 - 1.07", status: "Normal", explanation: "Correct (In Normal Range). Normal absolute monocyte count.", interpretation: "AMC normal.", recommendation: "Routine baseline.", confidence: "high" },
+    { category: "CBC / Hematology", test_name: "Absolute Basophil Count", result_val: "0.01", unit: "x 10^3/µL", normal_range: "0.02 - 0.1", status: "Normal", explanation: "Correct (In Normal Range). Basophil count is normal.", interpretation: "ABC normal.", recommendation: "Routine baseline.", confidence: "high" },
+
+    // Page 7: Kidney & Liver
+    { category: "Kidney Function & Renal", test_name: "Urea - Serum", result_val: "23.30", unit: "mg/dL", normal_range: "10.00 - 50.0", status: "Normal", explanation: "Correct (In Normal Range). Healthy blood urea clearance.", interpretation: "Renal urea normal.", recommendation: "Maintain daily fluid intake.", confidence: "high" },
+    { category: "Kidney Function & Renal", test_name: "Creatinine - Serum", result_val: "1.09", unit: "mg/dL", normal_range: "0.72 - 1.25", status: "Normal", explanation: "Correct (In Normal Range). Normal kidney filtration performance.", interpretation: "Creatinine normal.", recommendation: "Maintain optimal hydration.", confidence: "high" },
+    { category: "Kidney Function & Renal", test_name: "Uric Acid - Serum", result_val: "4.75", unit: "mg/dL", normal_range: "3.5 - 7.2", status: "Normal", explanation: "Correct (In Normal Range). Normal uric acid levels.", interpretation: "Uric acid is normal.", recommendation: "Maintain hydration.", confidence: "high" },
+    { category: "Liver Function Panel", test_name: "Alanine Transaminase (SGPT/ALT)", result_val: "30.10", unit: "U/L", normal_range: "0 - 55", status: "Normal", explanation: "Correct (In Normal Range). Healthy liver cellular enzyme levels.", interpretation: "SGPT is optimal.", recommendation: "Healthy lifestyle.", confidence: "high" },
+    { category: "Liver Function Panel", test_name: "Aspartate Transaminase (SGOT/AST)", result_val: "28.10", unit: "U/L", normal_range: "0 - 46", status: "Normal", explanation: "Correct (In Normal Range). Normal liver and tissue enzymes.", interpretation: "SGOT is optimal.", recommendation: "Healthy lifestyle.", confidence: "high" },
+    { category: "Liver Function Panel", test_name: "Alkaline Phosphatase - Serum", result_val: "57.70", unit: "U/L", normal_range: "< 150.0", status: "Normal", explanation: "Correct (In Normal Range). Healthy bone and liver enzyme levels.", interpretation: "ALP is normal.", recommendation: "Routine monitoring.", confidence: "high" },
+
+
+    // Page 8: Lipid Profile & Inflammatory Markers
+    { category: "Lipid Profile", test_name: "Total Cholesterol - Serum", result_val: "284.00", unit: "mg/dL", normal_range: "< 200.0", status: "High", explanation: "Out of Range (High). Elevated total cholesterol (>240 is high risk).", interpretation: "Total cholesterol is elevated (>240 mg/dL).", recommendation: "Low-saturated-fat diet, soluble fiber, oats, olive oil, and 30-min exercise.", confidence: "high" },
+    { category: "Lipid Profile", test_name: "Triglyceride - Serum", result_val: "192.00", unit: "mg/dL", normal_range: "< 150.0", status: "High", explanation: "Out of Range (High). Borderline high triglycerides.", interpretation: "Triglycerides are elevated (192 mg/dL).", recommendation: "Reduce refined carbs, sugars, soda, and sweet pastries.", confidence: "high" },
+    { category: "Lipid Profile", test_name: "HDL Cholesterol - Serum", result_val: "41.90", unit: "mg/dL", normal_range: ">= 40.0", status: "Normal", explanation: "Correct (In Normal Range). Good HDL cholesterol above limit.", interpretation: "HDL is protective (>40 mg/dL).", recommendation: "Aerobic exercise to boost HDL.", confidence: "high" },
+    { category: "Lipid Profile", test_name: "LDL Cholesterol - Serum", result_val: "203.70", unit: "mg/dL", normal_range: "< 100.0", status: "High", explanation: "Out of Range (High). Very high LDL bad cholesterol.", interpretation: "LDL is very high (>190 mg/dL).", recommendation: "Low-saturated fat diet, omega-3, physician consultation.", confidence: "high" },
+    { category: "Lipid Profile", test_name: "VLDL Cholesterol - Serum", result_val: "38.40", unit: "mg/dL", normal_range: "6.0 - 38.0", status: "High", explanation: "Out of Range (Slightly High). Slightly elevated VLDL.", interpretation: "VLDL slightly elevated.", recommendation: "Low carbohydrate diet.", confidence: "high" },
+    { category: "Inflammatory Markers", test_name: "CRP (C-Reactive Protein)", result_val: "5.86", unit: "mg/L", normal_range: "0.0 - 5.0", status: "High", explanation: "Out of Range (High). Elevated C-reactive protein.", interpretation: "CRP indicates mild acute inflammation.", recommendation: "Anti-inflammatory diet and doctor follow-up.", confidence: "high" },
+
+    // Page 9: Liver Bilirubin & Total Protein
+    { category: "Liver Function Panel", test_name: "Total Bilirubin - Serum", result_val: "0.44", unit: "mg/dL", normal_range: "0.0 - 1.20", status: "Normal", explanation: "Correct (In Normal Range). Normal total bilirubin.", interpretation: "Total bilirubin normal.", recommendation: "Routine monitoring.", confidence: "high" },
+    { category: "Liver Function Panel", test_name: "Direct Bilirubin - Serum", result_val: "0.11", unit: "mg/dL", normal_range: "0.0 - 0.40", status: "Normal", explanation: "Correct (In Normal Range). Normal conjugated bilirubin.", interpretation: "Direct bilirubin normal.", recommendation: "Routine monitoring.", confidence: "high" },
+    { category: "Liver Function Panel", test_name: "Indirect Bilirubin - Serum", result_val: "0.33", unit: "mg/dL", normal_range: "0.0 - 1.00", status: "Normal", explanation: "Correct (In Normal Range). Normal unconjugated bilirubin.", interpretation: "Indirect bilirubin normal.", recommendation: "Routine monitoring.", confidence: "high" },
+
+    { category: "Biochemistry", test_name: "Total Protein - Serum", result_val: "7.52", unit: "g/dL", normal_range: "6.2 - 8.0", status: "Normal", explanation: "Correct (In Normal Range). Healthy total serum protein.", interpretation: "Total protein normal.", recommendation: "Maintain protein intake.", confidence: "high" }
   ]
 };
+
 
 const MOCK_LEGAL_RESPONSE = {
   summary: {
@@ -395,16 +427,29 @@ const getDynamicMockLegal = (filename) => {
 // Seeding initial local database
 const getInitialDocuments = () => {
   const stored = localStorage.getItem('medlaw_demo_documents');
-  if (stored) return JSON.parse(stored);
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      // Auto-upgrade old cached seeds that had only 5 tests
+      const medDoc = parsed.find(d => d.file_type === 'medical');
+      if (!medDoc || !medDoc.medical_tests || medDoc.medical_tests.length < 10) {
+        localStorage.removeItem('medlaw_demo_documents');
+      } else {
+        return parsed;
+      }
+    } catch (e) {
+      localStorage.removeItem('medlaw_demo_documents');
+    }
+  }
 
-  // Seed default data so the dashboard isn't empty on first visit
+  // Seed default data with complete 45-test suite
   const seed = [
     {
       id: 101,
-      filename: "CBC_and_Vitamin_D_Report.pdf",
+      filename: "SANJEEV__KUMAR_139817812_46554860.pdf",
       file_type: "medical",
-      uploaded_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
-      text_content: "CBC and Vitamin D Laboratory Test Report. Patient: Demo User. Hemoglobin: 10.5 g/dL (Low), Vitamin D: 15.0 ng/mL (Low), Cholesterol: 235.0 mg/dL (High).",
+      uploaded_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      text_content: "Complete 9-page Pathology Lab Report. Total 45 parameters extracted.",
       summary_json: JSON.stringify(MOCK_MEDICAL_RESPONSE.summary),
       medical_tests: MOCK_MEDICAL_RESPONSE.tests
     },
@@ -412,7 +457,7 @@ const getInitialDocuments = () => {
       id: 102,
       filename: "Software_Engineer_Contract.pdf",
       file_type: "legal",
-      uploaded_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), // 15 days ago
+      uploaded_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
       text_content: "Employment Agreement. Software Engineer Role. Notice period is sixty days. Non-compete for 12 months in 50-mile radius. Governing jurisdiction: Delaware. Salary: $90,000 USD.",
       summary_json: JSON.stringify(MOCK_LEGAL_RESPONSE.summary),
       legal_clauses: MOCK_LEGAL_RESPONSE.clauses
@@ -421,6 +466,7 @@ const getInitialDocuments = () => {
   localStorage.setItem('medlaw_demo_documents', JSON.stringify(seed));
   return seed;
 };
+
 
 // Client-Side Gemini Call Helpers
 const cleanJsonString = (str) => {

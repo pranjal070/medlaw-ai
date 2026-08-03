@@ -322,66 +322,97 @@ KNOWN_MEDICAL_PARAMS = [
 import re
 
 LEGAL_SYSTEM_PROMPT = """
-You are an expert Legal Contract Analyzer. Your task is to extract key information, obligations, payment terms, notice periods, and clauses with risk levels from the legal document provided and output a structured JSON report.
+You are an expert Legal Contract Analyzer. Your task is to extract ALL key information from EVERY PAGE of the legal document provided.
+You MUST identify the exact names of all parties, witnesses, dates, and jurisdiction from the actual document text.
 You must return a JSON object with the following schema:
 {
   "summary": {
-    "document_type": "Type of legal contract (e.g. Employment Agreement, NDA, Service Contract, Commercial Lease)",
+    "document_type": "Type of legal contract (e.g. Employment Agreement, NDA, Service Contract, Commercial Lease, Court Order)",
     "purpose": "2-3 sentence overview explaining what this contract is for and what obligations it creates.",
-    "key_dates": ["Important dates or deadlines mentioned"],
+    "detailed_case_brief": "A comprehensive 4-6 sentence executive brief explaining the full context, background, and implications of this document.",
+    "contract_parties": {
+      "primary_party": "Exact full name of the first party / employer / lessor / plaintiff as written in the document",
+      "secondary_party": "Exact full name of the second party / employee / lessee / defendant as written in the document",
+      "witnesses": ["Full name of witness 1", "Full name of witness 2"],
+      "governing_jurisdiction": "Exact jurisdiction / court / governing law as stated in the document",
+      "executed_through": "The department, division, or authorized signatory executing the contract"
+    },
+    "key_dates": ["Important dates or deadlines mentioned with context"],
     "responsibilities": ["Key obligation 1", "Key obligation 2"],
     "payment_terms": "Summary of compensation, salary, or payment terms",
-    "termination_conditions": "How the contract can be terminated by either party"
+    "termination_conditions": "How the contract can be terminated by either party",
+    "joining_date": "Exact joining or effective date if mentioned",
+    "benefits_allowances": "Benefits, allowances, perks mentioned",
+    "training_requirements": "Training or probation obligations",
+    "employee_risks": "Risks to the employee/second party",
+    "exploitation_check": "Assessment of whether contract terms are fair or exploitative",
+    "overall_benefits": ["Advantage 1 for the employee/second party"],
+    "overall_disadvantages": ["Disadvantage 1 for the employee/second party"]
   },
   "clauses": [
     {
-      "clause_title": "Title of clause (e.g. Notice Period, Non-Compete Covenant, Governing Law, IP Ownership, Confidentiality)",
+      "clause_title": "Title of clause",
+      "category": "Category grouping (e.g. Employment Terms, Restrictive Covenants, Financial Terms, IP & Confidentiality, Termination & Exit)",
+      "location_reference": "Section/Article/Paragraph reference (e.g. Section 4.2, Article III)",
       "original_text": "Brief snippet or quote from the contract",
       "explanation": "Clear plain-English breakdown of what this means for the user",
       "risk_level": "Low" or "Medium" or "High",
-      "risk_explanation": "Explanation of why this risk level was assigned and what to watch out for before signing"
+      "risk_explanation": "Explanation of why this risk level was assigned",
+      "detailed_risk_analysis": "In-depth analysis of the risk and negotiation advice",
+      "employee_advantages": "What benefits does this clause give the employee/second party",
+      "employee_disadvantages": "What risks or limitations does this clause impose on the employee/second party"
     }
   ]
 }
 
 Strict Rules:
-1. Do not give formal legal counsel, but explain terms objectively.
-2. Highlight high-risk restrictive covenants (e.g. strict non-compete, non-solicit, unilateral termination, unlimited liability).
-3. Output must be valid JSON only. Do not wrap in markdown tags like ```json.
+1. Extract exact party names, witness names, and dates directly from the document text. Never use placeholders.
+2. Read ALL pages of the document. Do not stop at the first page.
+3. Do not give formal legal counsel, but explain terms objectively.
+4. Highlight high-risk restrictive covenants.
+5. Output must be valid JSON only. Do not wrap in markdown tags like ```json.
 """
 
 MEDICAL_SYSTEM_PROMPT = """
-You are an expert Medical Report Analyzer. Your task is to extract EVERY SINGLE TEST from all pages of the medical report provided and output a structured JSON report.
+You are an expert Medical Report Analyzer. Your task is to extract the patient identity AND EVERY SINGLE TEST from ALL pages of the medical report provided.
 You must return a JSON object with the following schema:
 {
   "summary": {
-    "overall_health": "Short paragraph summarizing overall health status of the patient.",
+    "patient_name": "Exact full name of the patient as printed on the report. If not found, return 'Not Specified'.",
+    "patient_age": "Age of the patient as printed on the report, or 'Not Specified'",
+    "patient_gender": "Gender of the patient as printed on the report, or 'Not Specified'",
+    "referring_doctor": "Name of the referring doctor if mentioned, or 'Not Specified'",
+    "lab_name": "Name of the laboratory or hospital if mentioned, or 'Not Specified'",
+    "report_date": "Date of the report if mentioned, or 'Not Specified'",
+    "overall_health": "Short paragraph summarizing overall health status of the patient BY NAME.",
     "health_decision": "One of: 'Consult Doctor Urgently', 'Attention Required - Follow-Up Suggested', 'Routine Monitoring Recommended', or 'Optimal Health Baseline'",
     "key_findings": ["Bullet point finding 1", "Bullet point finding 2"],
     "abnormal_parameters": ["List of parameters that are out of bounds"],
     "precautions": ["Action 1: Precaution or steps to take"],
-    "what_to_eat": ["Dietary item 1: Foods, vitamins, or nutritional items to add/consume"],
-    "what_to_stop": ["Item 1 to stop or avoid: Foods, drinks, habits, or triggers to eliminate"],
-    "recommendations": ["General recommendation 1", "General recommendation 2"],
+    "what_to_eat": ["Dietary item 1"],
+    "what_to_stop": ["Item 1 to stop or avoid"],
+    "recommendations": ["General recommendation 1"],
     "attention_tests": ["Tests requiring immediate doctor attention"]
   },
   "tests": [
     {
       "test_name": "Exact Name of the medical test",
+      "category": "Category grouping (e.g. Hematology, Biochemistry, Lipid Profile, Thyroid, Vitamins)",
       "result_val": "Numeric result value or qualitative result",
       "unit": "Unit of measurement or null",
       "normal_range": "Normal range description string or null",
       "status": "Normal" or "Low" or "High" or "Attention",
-      "explanation": "Simple 1-2 sentence explanation of whether this test is Correct (Normal) or Out of Range (High/Low/Attention), and educational advice."
+      "explanation": "1-2 sentence explanation"
     }
   ]
 }
 
 Strict Rules:
-1. Extract EVERY SINGLE test listed across ALL pages of the document without omitting any test.
-2. Clearly mark whether each test status is 'Normal' (Correct) or 'Low' / 'High' / 'Attention' (Needs attention).
-3. Do not diagnose any diseases or prescribe medicines.
-4. Output must be valid JSON only. Do not wrap in markdown tags like ```json.
+1. ALWAYS extract the patient's full name, age, and gender from the report header/first page.
+2. Extract EVERY SINGLE test listed across ALL pages without omitting any test.
+3. Clearly mark whether each test status is 'Normal' (Correct) or 'Low' / 'High' / 'Attention'.
+4. Do not diagnose any diseases or prescribe medicines.
+5. Output must be valid JSON only. Do not wrap in markdown tags like ```json.
 """
 
 def parse_medical_text_locally(text_content: str, filename: str = "") -> Dict[str, Any]:
@@ -389,6 +420,49 @@ def parse_medical_text_locally(text_content: str, filename: str = "") -> Dict[st
     found_names = set()
 
     text_lower = text_content.lower() if text_content else ""
+    
+    # Extract patient identity from text
+    patient_name = "Not Specified"
+    patient_age = "Not Specified"
+    patient_gender = "Not Specified"
+    referring_doctor = "Not Specified"
+    lab_name = "Not Specified"
+    report_date = "Not Specified"
+    
+    if text_content:
+        # Patient Name patterns: "Patient Name: John Doe", "Name : John Doe", "Patient: John Doe"
+        name_match = re.search(r"(?:patient\s*(?:name)?|name)\s*[:;]\s*([A-Z][a-zA-Z.\s]{2,40})", text_content, re.IGNORECASE)
+        if name_match:
+            patient_name = name_match.group(1).strip().rstrip('.')
+        
+        # Age patterns: "Age: 25", "Age/Sex: 25/M", "Age : 25 Years"
+        age_match = re.search(r"age\s*[:/]?\s*(?:sex\s*[:/]?\s*)?(\d{1,3})\s*(?:/\s*([MFmf]))?(?:\s*(?:years?|yrs?))?|(?:age\s*[:;]\s*(\d{1,3}))", text_content, re.IGNORECASE)
+        if age_match:
+            patient_age = age_match.group(1) or age_match.group(3) or "Not Specified"
+            if age_match.group(2):
+                patient_gender = "Male" if age_match.group(2).upper() == "M" else "Female"
+        
+        # Gender patterns: "Sex: Male", "Gender: Female", "Sex : M"
+        if patient_gender == "Not Specified":
+            gender_match = re.search(r"(?:sex|gender)\s*[:;]\s*(male|female|m|f)\b", text_content, re.IGNORECASE)
+            if gender_match:
+                g = gender_match.group(1).strip().upper()
+                patient_gender = "Male" if g in ["M", "MALE"] else "Female"
+        
+        # Referring Doctor: "Referred By: Dr. XYZ", "Ref. By : Dr. ABC"
+        doc_match = re.search(r"(?:referred?\s*by|ref\.?\s*by|doctor)\s*[:;]\s*(?:dr\.?\s*)?([A-Za-z.\s]{3,40})", text_content, re.IGNORECASE)
+        if doc_match:
+            referring_doctor = doc_match.group(1).strip().rstrip('.')
+        
+        # Lab Name: often in first few lines
+        lab_match = re.search(r"(?:lab(?:oratory)?|hospital|diagnostic|pathology)\s*[:;]?\s*([A-Za-z.\s&]{3,60})", text_content[:500], re.IGNORECASE)
+        if lab_match:
+            lab_name = lab_match.group(1).strip().rstrip('.')
+        
+        # Report Date
+        date_match = re.search(r"(?:date|report\s*date|collected|sample\s*date)\s*[:;]\s*([\d]{1,2}[/-][\d]{1,2}[/-][\d]{2,4}|[\d]{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{2,4})", text_content, re.IGNORECASE)
+        if date_match:
+            report_date = date_match.group(1).strip()
 
     # 1. Regex scanning for known medical parameters in text_content
     if text_lower:
@@ -621,6 +695,12 @@ def parse_medical_text_locally(text_content: str, filename: str = "") -> Dict[st
 
     return {
         "summary": {
+            "patient_name": patient_name,
+            "patient_age": patient_age,
+            "patient_gender": patient_gender,
+            "referring_doctor": referring_doctor,
+            "lab_name": lab_name,
+            "report_date": report_date,
             "overall_health": overall_health,
             "health_decision": health_decision,
             "key_findings": key_findings,
@@ -639,11 +719,43 @@ def parse_legal_text_locally(text_content: str, filename: str = "") -> Dict[str,
     text_lower = text_content.lower() if text_content else ""
     clauses = []
     
+    # Extract party names from common patterns
+    primary_party = "First Party (extracted from document)"
+    secondary_party = "Second Party (extracted from document)"
+    witnesses = []
+    jurisdiction = "As specified in document"
+    
+    if text_content:
+        # Party patterns: "between X (hereinafter...)" or "Party 1: X" or "EMPLOYER: X"
+        between_match = re.search(r"between\s+([A-Z][A-Za-z\s.,&]+?)(?:\s*\(|\s*,\s*(?:herein|here))", text_content)
+        if between_match:
+            primary_party = between_match.group(1).strip().rstrip(',.')
+        
+        # Second party: "and X (hereinafter...)" after first party
+        and_match = re.search(r"\band\s+([A-Z][A-Za-z\s.,&]+?)(?:\s*\(|\s*,\s*(?:herein|here))", text_content)
+        if and_match:
+            secondary_party = and_match.group(1).strip().rstrip(',.')
+        
+        # Alternative patterns: "Party A:", "Employer:", "Employee:"
+        emp_match = re.search(r"(?:employer|company|party\s*(?:a|1|of the first part))[\s:]+([A-Z][A-Za-z\s.,&]{3,50})", text_content, re.IGNORECASE)
+        if emp_match and primary_party.startswith("First"):
+            primary_party = emp_match.group(1).strip().rstrip(',.')
+            
+        ee_match = re.search(r"(?:employee|contractor|party\s*(?:b|2|of the second part))[\s:]+([A-Z][A-Za-z\s.,&]{3,50})", text_content, re.IGNORECASE)
+        if ee_match and secondary_party.startswith("Second"):
+            secondary_party = ee_match.group(1).strip().rstrip(',.')
+        
+        # Witness extraction
+        witness_matches = re.findall(r"witness(?:es)?[\s:]+([A-Z][A-Za-z\s.,]{3,40})", text_content, re.IGNORECASE)
+        if witness_matches:
+            witnesses = [w.strip().rstrip(',.') for w in witness_matches[:4]]
+    
     match_notice = re.search(r"(\d+)\s*(?:day|days|month|months)\s*(?:written)?\s*notice", text_lower)
     if match_notice:
         notice_val = match_notice.group(0)
         clauses.append({
             "clause_title": "Notice Period",
+            "category": "Termination & Exit",
             "original_text": f"Notice requirement extracted: '{notice_val}'.",
             "explanation": f"You must provide a written notification of at least {notice_val} prior to voluntary resignation or contract termination.",
             "risk_level": "Medium",
@@ -652,6 +764,7 @@ def parse_legal_text_locally(text_content: str, filename: str = "") -> Dict[str,
     else:
         clauses.append({
             "clause_title": "Notice Period",
+            "category": "Termination & Exit",
             "original_text": "Standard termination notice rules apply.",
             "explanation": "No custom notice period was specified in the extracted text.",
             "risk_level": "Low",
@@ -663,6 +776,7 @@ def parse_legal_text_locally(text_content: str, filename: str = "") -> Dict[str,
         radius_str = match_radius.group(0) if match_radius else "specified geographic region"
         clauses.append({
             "clause_title": "Non-Compete Covenant",
+            "category": "Restrictive Covenants",
             "original_text": "Non-compete covenant detected in contract text.",
             "explanation": f"Restricts engaging in competitive activities within {radius_str} after termination.",
             "risk_level": "High",
@@ -672,6 +786,7 @@ def parse_legal_text_locally(text_content: str, filename: str = "") -> Dict[str,
     if "intellectual property" in text_lower or "inventions" in text_lower or "work product" in text_lower:
         clauses.append({
             "clause_title": "Intellectual Property Ownership",
+            "category": "IP & Confidentiality",
             "original_text": "All inventions and work products created belong to the company.",
             "explanation": "Any software, designs, or innovations created during contract performance belong to the employer.",
             "risk_level": "Low",
@@ -681,8 +796,10 @@ def parse_legal_text_locally(text_content: str, filename: str = "") -> Dict[str,
     match_juris = re.search(r"(?:laws of|jurisdiction of|governed by)\s+([A-Za-z\s]+)(?:\.|,|\n)", text_lower)
     if match_juris:
         state_name = match_juris.group(1).strip()
+        jurisdiction = state_name.title()
         clauses.append({
             "clause_title": "Governing Jurisdiction",
+            "category": "Legal Framework",
             "original_text": f"Governed by the laws of {state_name}.",
             "explanation": f"Disputes will be arbitrated or litigated under the jurisdiction of {state_name}.",
             "risk_level": "Medium",
@@ -698,6 +815,14 @@ def parse_legal_text_locally(text_content: str, filename: str = "") -> Dict[str,
         "summary": {
             "document_type": "Legal Contract / Agreement",
             "purpose": f"Outlines contractual rights, liabilities, and terms set forth in '{doc_label}'.",
+            "detailed_case_brief": f"This document '{doc_label}' establishes a binding contractual relationship between {primary_party} and {secondary_party}. It outlines mutual obligations, compensation terms, and exit provisions under the governing jurisdiction.",
+            "contract_parties": {
+                "primary_party": primary_party,
+                "secondary_party": secondary_party,
+                "witnesses": witnesses,
+                "governing_jurisdiction": jurisdiction,
+                "executed_through": "As specified in document"
+            },
             "key_dates": [
                 f"Notice Period: {match_notice.group(0) if match_notice else 'Standard notice rules'}"
             ],
@@ -706,7 +831,9 @@ def parse_legal_text_locally(text_content: str, filename: str = "") -> Dict[str,
                 "Maintain strict confidentiality of proprietary company materials."
             ],
             "payment_terms": pay_str,
-            "termination_conditions": "Termination permitted with specified written notice or immediately 'For Cause'."
+            "termination_conditions": "Termination permitted with specified written notice or immediately 'For Cause'.",
+            "overall_benefits": [],
+            "overall_disadvantages": []
         },
         "clauses": clauses
     }
@@ -742,18 +869,22 @@ def analyze_medical_document(text_content: str, file_bytes: Optional[bytes] = No
     
     try:
         prompt = (
-            "Analyze this complete pathology report carefully across ALL pages provided.\n"
-            "Extract EVERY SINGLE laboratory test parameter present. Do NOT omit any test. Do NOT limit output.\n"
-            "Group tests dynamically into categories: Hematology, Biochemistry, Lipid Profile, Kidney Function, Liver Function, Thyroid, Diabetes, Vitamins, Hormones, Others.\n"
+            "CRITICAL INSTRUCTION: Analyze this complete pathology report carefully across ALL pages provided.\n"
+            "You MUST extract EVERY SINGLE laboratory test parameter present across ALL pages. There may be 30-60+ tests.\n"
+            "Do NOT omit any test. Do NOT limit or truncate output. Do NOT stop early.\n"
+            "Extract the patient's full name, age, gender, referring doctor, lab name, and report date from the header.\n"
+            "Group tests into categories: Hematology/CBC, Biochemistry, Lipid Profile, Kidney Function, Liver Function, Thyroid, Diabetes, Vitamins, Hormones, Inflammatory Markers, Others.\n"
+            f"This PDF has {total_pages} pages. Make sure you read ALL {total_pages} pages and extract tests from EACH page.\n"
         )
         if text_content:
-            prompt += f"\nExtracted Document Text:\n{text_content}\n"
+            prompt += f"\nExtracted Document Text (from all pages):\n{text_content}\n"
             
         contents = []
         
         # Pass ALL page images rendered from PDF to Gemini
         if page_images:
-            for img_b in page_images:
+            print(f"[DEBUG LOG] Sending {len(page_images)} page images to Gemini")
+            for idx, img_b in enumerate(page_images):
                 contents.append({
                     "mime_type": "image/jpeg",
                     "data": img_b
@@ -768,7 +899,7 @@ def analyze_medical_document(text_content: str, file_bytes: Optional[bytes] = No
         
         response = model.generate_content(
             contents,
-            generation_config={"response_mime_type": "application/json"},
+            generation_config={"response_mime_type": "application/json", "max_output_tokens": 65536},
             system_instruction=MEDICAL_SYSTEM_PROMPT
         )
         
@@ -798,33 +929,83 @@ def analyze_medical_document(text_content: str, file_bytes: Optional[bytes] = No
 
 
 
-def analyze_legal_document(text_content: str, file_bytes: Optional[bytes] = None, mime_type: Optional[str] = None, api_key: Optional[str] = None, filename: str = "") -> Dict[str, Any]:
+def analyze_legal_document(text_content: str, file_bytes: Optional[bytes] = None, mime_type: Optional[str] = None, api_key: Optional[str] = None, filename: str = "", file_path: Optional[str] = None) -> Dict[str, Any]:
+    from . import ocr
+    
+    total_pages = 1
+    page_images = []
+    
+    # Extract ALL pages via OCR for multi-page PDF analysis
+    if file_path and os.path.exists(file_path):
+        ocr_result = ocr.extract_all_pages(file_path)
+        total_pages = ocr_result.get("total_pages", 1)
+        page_images = ocr_result.get("page_images", [])
+        page_texts = ocr_result.get("page_texts", [])
+        
+        # Enrich text_content with OCR-extracted text from ALL pages
+        if page_texts:
+            ocr_text = "\n\n".join([f"[Page {i+1}]\n{pt}" for i, pt in enumerate(page_texts) if pt.strip()])
+            if ocr_text and len(ocr_text) > len(text_content or ""):
+                text_content = ocr_text
+    
+    print(f"[DEBUG LOG] ==========================================")
+    print(f"[DEBUG LOG] Starting Legal Document Analysis: {filename}")
+    print(f"[DEBUG LOG] Total pages processed: {total_pages}")
+    print(f"[DEBUG LOG] Text content length: {len(text_content or '')}")
+    
     model = get_gemini_model(api_key)
     
     if not model:
-        print("Using Dynamic Local Legal Parser")
+        print("[DEBUG LOG] Gemini API key not present. Running local legal parser.")
         return parse_legal_text_locally(text_content, filename)
     
     try:
-        prompt = "Analyze this legal agreement:\n" + text_content if text_content else "Analyze this uploaded contract document."
-        
+        prompt = (
+            "CRITICAL INSTRUCTION: Analyze this complete legal document carefully across ALL pages provided.\n"
+            "You MUST extract the EXACT REAL names of all parties from the document text.\n"
+            "For contract_parties.primary_party: Find the first party name (employer/company/lessor/plaintiff).\n"
+            "For contract_parties.secondary_party: Find the second party name (employee/individual/lessee/defendant).\n"
+            "For contract_parties.witnesses: Find all witness names if listed.\n"
+            "For contract_parties.governing_jurisdiction: Find the exact jurisdiction or governing law.\n"
+            "Do NOT use placeholder text like 'First Party' or 'Second Party'. Use the ACTUAL names from the document.\n"
+            "Extract ALL clauses from EVERY page. Do NOT stop at the first page.\n"
+            f"This PDF has {total_pages} pages. Make sure you read ALL {total_pages} pages.\n"
+        )
+        if text_content:
+            prompt += f"\nExtracted Document Text (from all pages):\n{text_content}\n"
+            
         contents = []
-        if file_bytes and mime_type:
+        
+        # Pass ALL page images rendered from PDF to Gemini for multimodal analysis
+        if page_images:
+            print(f"[DEBUG LOG] Sending {len(page_images)} page images to Gemini")
+            for img_b in page_images:
+                contents.append({
+                    "mime_type": "image/jpeg",
+                    "data": img_b
+                })
+        elif file_bytes and mime_type:
             contents.append({
                 "mime_type": mime_type,
                 "data": file_bytes
             })
+            
         contents.append(prompt)
         
         response = model.generate_content(
             contents,
-            generation_config={"response_mime_type": "application/json"},
+            generation_config={"response_mime_type": "application/json", "max_output_tokens": 65536},
             system_instruction=LEGAL_SYSTEM_PROMPT
         )
         
-        return json.loads(response.text)
+        print(f"[DEBUG LOG] Raw AI JSON:\n{response.text[:1000]}...")
+        res_json = json.loads(response.text)
+        print(f"[DEBUG LOG] Clauses extracted: {len(res_json.get('clauses', []))}")
+        print(f"[DEBUG LOG] ==========================================")
+        
+        return res_json
     except Exception as e:
-        print(f"Gemini legal analysis failed: {str(e)}. Falling back to dynamic local parser.")
+        print(f"[DEBUG LOG ERROR] Gemini legal analysis failed: {str(e)}. Falling back to dynamic local parser.")
         return parse_legal_text_locally(text_content, filename)
 
 
